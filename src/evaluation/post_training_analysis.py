@@ -1,293 +1,252 @@
-"""Post-training analysis on frozen prediction tensors (S-09c merge).
-
-Consolidates three previously-separate scripts into one entry point:
-    1. per-seed metric export        → results/per_seed_metrics.csv
-    2. § 14 complexity metrics       → results/complexity_metrics.csv
-    3. § 16 paired bootstrap CIs     → results/bootstrap_intervals.csv
-
-Output CSV paths and contents are preserved byte-equivalent to the legacy
-scripts (per_seed_metrics_export.py, complexity_report.py,
-uncertainty_bootstrap.py) so existing prose / VALIDATION_LOG references
-remain valid.
-
-§ 16 mandatory safety sentence (CLAUDE.md):
-    "Interval estimates are used as comparative uncertainty evidence, not as a
-     claim of strict independent-sample inference."
-
-Test-window independence warning (CLAUDE.md § 16): ETTh1 windows are stride-1
-sliding; the standard percentile bootstrap underestimates true sampling
-variance. Documented as Internal-validity threat in methodology + discussion.
-
-Run:
-    python src/evaluation/post_training_analysis.py
-"""
-
-import os
+import argparse
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-from sklearn.preprocessing import StandardScaler
+
+from src.common import (
+    MLP,
+    LSTMModel,
+    apply_runtime_overrides,
+    compute_original_metrics,
+    load_config,
+    prepare_supervised_data,
+)
+
+try:
+    from arch.bootstrap import MovingBlockBootstrap
+except ImportError:  # pragma: no cover
+    MovingBlockBootstrap = None
 
 
-# ============================================================
-# Constants — same as the locked § 10 defaults
-# ============================================================
-SEEDS = [42, 123, 456]
-INPUT_LEN = 96
-OUTPUT_LEN = 24
-N_FEATURES = 7
 BOOTSTRAP_SEED = 2026
 N_BOOTSTRAP = 10_000
 MODELS_ORDERED = ["LR", "MLP", "LSTM", "TFT"]
-HARDWARE_NOTE = "single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64"
+HARDWARE_NOTE = "single local machine run; bachelor-safe local-only workflow"
 
 
-# ============================================================
-# Shared helpers — identical semantics to training/multi_seed.py
-# ============================================================
-def create_windows(data, input_len=INPUT_LEN, output_len=OUTPUT_LEN):
-    X, y = [], []
-    for i in range(len(data) - input_len - output_len + 1):
-        X.append(data[i : i + input_len])
-        y.append(data[i + input_len : i + input_len + output_len])
-    return np.array(X), np.array(y)
-
-
-def inverse_transform_3d(arr_3d, scaler):
-    n_w, t, n_f = arr_3d.shape
-    flat = arr_3d.reshape(n_w * t, n_f)
-    return scaler.inverse_transform(flat).reshape(n_w, t, n_f)
-
-
-def compute_original_metrics(y_true_orig, y_pred_orig):
-    mse = float(np.mean((y_true_orig - y_pred_orig) ** 2))
-    mae = float(np.mean(np.abs(y_true_orig - y_pred_orig)))
-    rmse = float(np.sqrt(mse))
-    return mse, mae, rmse
-
-
-# ============================================================
-# Model class definitions — architecture-only (for parameter count);
-# byte-identical to training/multi_seed.py
-# ============================================================
-class MLP(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size=128):
-        super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, output_size),
-        )
-
-    def forward(self, x):
-        return self.network(x)
-
-
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1):
-        super().__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        lstm_out, _ = self.lstm(x)
-        last_hidden = lstm_out[:, -1, :]
-        return self.fc(last_hidden)
-
-
-# ============================================================
-# Section 0 — shared data reconstruction
-# ============================================================
-def rebuild_y_test_orig():
-    df = pd.read_csv("data/ETTh1.csv").drop(columns=["date"])
-    n = len(df)
-    train_end = int(n * 0.6)
-    val_end = int(n * 0.8)
-    train = df.iloc[:train_end]
-    test = df.iloc[val_end:]
-    scaler = StandardScaler().fit(train)
-    test_scaled = scaler.transform(test)
-    _, y_test = create_windows(test_scaled)
-    y_test_orig = inverse_transform_3d(y_test, scaler)
-    assert y_test_orig.shape == (3365, OUTPUT_LEN, N_FEATURES), \
-        f"unexpected y_test shape: {y_test_orig.shape}"
-    return y_test_orig
-
-
-# ============================================================
-# Section 1 — per-seed metrics export
-# ============================================================
-def export_per_seed_metrics(y_test_orig):
+def export_per_seed_metrics(y_test_orig, results_dir, seeds):
     rows = []
-    preds_lr = np.load("results/preds_lr.npy")
+    preds_lr = np.load(results_dir / "preds_lr.npy")
     mse, mae, rmse = compute_original_metrics(y_test_orig, preds_lr)
-    rows.append({"model": "LR", "seed": "deterministic",
-                 "mse_original": mse, "mae_original": mae, "rmse_original": rmse})
+    rows.append(
+        {
+            "model": "LR",
+            "seed": "deterministic",
+            "mse_original": mse,
+            "mae_original": mae,
+            "rmse_original": rmse,
+        }
+    )
     for model_name in ("mlp", "lstm", "tft"):
-        for seed in SEEDS:
-            preds = np.load(f"results/preds_{model_name}_seed{seed}.npy")
+        for seed in seeds:
+            preds = np.load(results_dir / f"preds_{model_name}_seed{seed}.npy")
             mse, mae, rmse = compute_original_metrics(y_test_orig, preds)
-            rows.append({"model": model_name.upper(), "seed": seed,
-                         "mse_original": mse, "mae_original": mae,
-                         "rmse_original": rmse})
+            rows.append(
+                {
+                    "model": model_name.upper(),
+                    "seed": seed,
+                    "mse_original": mse,
+                    "mae_original": mae,
+                    "rmse_original": rmse,
+                }
+            )
     out_df = pd.DataFrame(rows)
-    os.makedirs("results", exist_ok=True)
-    out_df.to_csv("results/per_seed_metrics.csv", index=False)
+    out_df.to_csv(results_dir / "per_seed_metrics.csv", index=False)
     return out_df
 
 
-# ============================================================
-# Section 2 — § 14 complexity metrics
-# ============================================================
-def export_complexity_metrics():
-    input_flat = INPUT_LEN * N_FEATURES
-    output_flat = OUTPUT_LEN * N_FEATURES
-    lr_n_params = output_flat * input_flat + output_flat
-
-    mlp_model = MLP(input_size=input_flat, output_size=output_flat)
-    mlp_n_params = sum(p.numel() for p in mlp_model.parameters())
-
-    lstm_model = LSTMModel(input_size=N_FEATURES, hidden_size=64, output_size=output_flat)
-    lstm_n_params = sum(p.numel() for p in lstm_model.parameters())
-
-    tft_metrics = pd.read_csv("results/tft_metrics.csv")
+def export_complexity_metrics(results_dir):
+    runtime_df = pd.read_csv(results_dir / "runtime_seconds.csv")
+    runtime_summary = runtime_df.groupby("model")["wall_clock_seconds"].sum().to_dict()
+    tft_metrics = pd.read_csv(results_dir / "tft_metrics.csv")
     tft_n_params = int(tft_metrics["n_params"].iloc[0])
 
-    categories = {
-        "LR": "linear",
-        "MLP": "shallow-MLP",
-        "LSTM": "recurrent",
-        "TFT": "transformer-family",
-    }
+    input_flat = 96 * 7
+    output_flat = 24 * 7
+    lr_n_params = output_flat * input_flat + output_flat
+    mlp_n_params = sum(p.numel() for p in MLP(input_size=input_flat, output_size=output_flat).parameters())
+    lstm_n_params = sum(p.numel() for p in LSTMModel(input_size=7, hidden_size=64, output_size=output_flat).parameters())
 
-    tft_curves = pd.read_csv("results/tft_training_curves.csv")
-    tft_last_epoch_per_seed = tft_curves.groupby("seed")["epoch"].max().to_dict()
-    tft_sec_per_epoch = 15
-    tft_per_seed_sec = {
-        int(seed): (int(last_ep) + 1) * tft_sec_per_epoch
-        for seed, last_ep in tft_last_epoch_per_seed.items()
-    }
-    tft_total_sec = sum(tft_per_seed_sec.values())
-    tft_wallclock_note = (
-        f"best-effort estimate ~{tft_total_sec} sec total across 3 seeds "
-        f"(per-seed {tft_per_seed_sec}; ~{tft_sec_per_epoch} sec/epoch × epoch counts from training_curves.csv)"
-    )
-
-    wallclock = {
-        "LR": "< 1 sec (deterministic closed-form OLS; no iterative training)",
-        "MLP": (
-            "not instrumented (§ 14 secondary — src/training/multi_seed.py does not wrap the "
-            "training loop with time.perf_counter(); training_curves.csv captures "
-            "epoch progression but not wall-clock seconds)"
-        ),
-        "LSTM": (
-            "not instrumented (§ 14 secondary — same instrumentation gap as MLP)"
-        ),
-        "TFT": tft_wallclock_note,
-    }
-
-    n_params_by_model = {
-        "LR": lr_n_params, "MLP": mlp_n_params,
-        "LSTM": lstm_n_params, "TFT": tft_n_params,
-    }
     rows = [
-        {"model": m,
-         "n_params": n_params_by_model[m],
-         "architectural_category": categories[m],
-         "wall_clock_note": wallclock[m],
-         "hardware_note": HARDWARE_NOTE}
-        for m in MODELS_ORDERED
+        {
+            "model": "LR",
+            "n_params": lr_n_params,
+            "architectural_category": "linear",
+            "wall_clock_seconds": float(runtime_summary.get("LR", 0.0)),
+            "hardware_note": HARDWARE_NOTE,
+        },
+        {
+            "model": "MLP",
+            "n_params": mlp_n_params,
+            "architectural_category": "shallow-MLP",
+            "wall_clock_seconds": float(runtime_summary.get("MLP", 0.0)),
+            "hardware_note": HARDWARE_NOTE,
+        },
+        {
+            "model": "LSTM",
+            "n_params": lstm_n_params,
+            "architectural_category": "recurrent",
+            "wall_clock_seconds": float(runtime_summary.get("LSTM", 0.0)),
+            "hardware_note": HARDWARE_NOTE,
+        },
+        {
+            "model": "TFT",
+            "n_params": tft_n_params,
+            "architectural_category": "transformer-family",
+            "wall_clock_seconds": float(runtime_summary.get("TFT", 0.0)),
+            "hardware_note": HARDWARE_NOTE,
+        },
     ]
     out_df = pd.DataFrame(rows)
-    os.makedirs("results", exist_ok=True)
-    out_df.to_csv("results/complexity_metrics.csv", index=False)
+    out_df.to_csv(results_dir / "complexity_metrics.csv", index=False)
     return out_df
 
 
-# ============================================================
-# Section 3 — § 16 paired bootstrap CIs
-# ============================================================
-def export_bootstrap_intervals(y_test_orig):
-    preds = {"LR": np.load("results/preds_lr.npy")}
-    for m in ["mlp", "lstm", "tft"]:
+def _manual_moving_block_ci(diff, *, block_length, reps, seed):
+    rng = np.random.default_rng(seed)
+    n = len(diff)
+    dist = np.empty(reps, dtype=float)
+    max_start = max(n - block_length + 1, 1)
+    for idx in range(reps):
+        chunks = []
+        current = 0
+        while current < n:
+            start = int(rng.integers(0, max_start))
+            block = diff[start : start + block_length]
+            chunks.append(block)
+            current += len(block)
+        sample = np.concatenate(chunks)[:n]
+        dist[idx] = sample.mean()
+    return dist
+
+
+def _bootstrap_distribution(diff, *, block_length, reps, seed):
+    if MovingBlockBootstrap is None:
+        return _manual_moving_block_ci(diff, block_length=block_length, reps=reps, seed=seed)
+
+    bs = MovingBlockBootstrap(block_length, diff, seed=seed)
+    dist = np.empty(reps, dtype=float)
+    for idx, data in enumerate(bs.bootstrap(reps)):
+        sample = data[0][0]
+        dist[idx] = np.mean(sample)
+    return dist
+
+
+def export_bootstrap_intervals(y_test_orig, results_dir, input_len):
+    preds = {"LR": np.load(results_dir / "preds_lr.npy")}
+    seeds = sorted(
+        {
+            int(path.stem.split("seed")[-1])
+            for path in results_dir.glob("preds_mlp_seed*.npy")
+        }
+    )
+    for model_name in ("mlp", "lstm", "tft"):
         stack = np.stack(
-            [np.load(f"results/preds_{m}_seed{s}.npy") for s in SEEDS], axis=0
+            [np.load(results_dir / f"preds_{model_name}_seed{seed}.npy") for seed in seeds],
+            axis=0,
         )
-        preds[m.upper()] = stack.mean(axis=0)
-    for name, p in preds.items():
-        assert p.shape == y_test_orig.shape, f"{name} shape mismatch"
+        preds[model_name.upper()] = stack.mean(axis=0)
 
     def per_window_errors(y_true, y_pred):
         diff = y_true - y_pred
-        n_w = diff.shape[0]
-        flat = diff.reshape(n_w, -1)
+        flat = diff.reshape(diff.shape[0], -1)
         return (flat ** 2).mean(axis=1), np.abs(flat).mean(axis=1)
 
-    errors = {name: dict(zip(("sq", "abs"), per_window_errors(y_test_orig, p)))
-              for name, p in preds.items()}
+    errors = {
+        name: dict(zip(("mse", "mae"), per_window_errors(y_test_orig, pred)))
+        for name, pred in preds.items()
+    }
+    for name, payload in errors.items():
+        payload["rmse"] = np.sqrt(payload["mse"])
 
-    n_test = y_test_orig.shape[0]
-    rng = np.random.default_rng(BOOTSTRAP_SEED)
-    boot_indices = rng.integers(0, n_test, size=(N_BOOTSTRAP, n_test), dtype=np.int32)
-
-    boot_stats = {}
-    for name, err in errors.items():
-        sq_resampled = err["sq"][boot_indices]
-        mse_dist = sq_resampled.mean(axis=1)
-        del sq_resampled
-        abs_resampled = err["abs"][boot_indices]
-        mae_dist = abs_resampled.mean(axis=1)
-        del abs_resampled
-        boot_stats[name] = {"mse": mse_dist, "mae": mae_dist, "rmse": np.sqrt(mse_dist)}
-
-    pairs = [(MODELS_ORDERED[i], MODELS_ORDERED[j])
-             for i in range(len(MODELS_ORDERED))
-             for j in range(i + 1, len(MODELS_ORDERED))]
+    pairs = [
+        (MODELS_ORDERED[i], MODELS_ORDERED[j])
+        for i in range(len(MODELS_ORDERED))
+        for j in range(i + 1, len(MODELS_ORDERED))
+    ]
 
     rows = []
+    sensitivity_rows = []
     for a, b in pairs:
-        for metric in ["mse", "mae", "rmse"]:
-            diff = boot_stats[a][metric] - boot_stats[b][metric]
-            rows.append({
-                "model_pair": f"{a}_vs_{b}",
-                "metric": metric.upper(),
-                "mean_diff": round(float(diff.mean()), 6),
-                "ci_low": round(float(np.percentile(diff, 2.5)), 6),
-                "ci_high": round(float(np.percentile(diff, 97.5)), 6),
-                "bootstrap_n": N_BOOTSTRAP,
-                "bootstrap_seed": BOOTSTRAP_SEED,
-                "n_test_windows": n_test,
-            })
-    out_df = pd.DataFrame(rows)
-    os.makedirs("results", exist_ok=True)
-    out_df.to_csv("results/bootstrap_intervals.csv", index=False)
-    return out_df
+        for metric in ("mse", "mae", "rmse"):
+            diff = errors[a][metric] - errors[b][metric]
+            dist = _bootstrap_distribution(
+                diff,
+                block_length=input_len,
+                reps=N_BOOTSTRAP,
+                seed=BOOTSTRAP_SEED,
+            )
+            rows.append(
+                {
+                    "model_pair": f"{a}_vs_{b}",
+                    "metric": metric.upper(),
+                    "mean_diff": round(float(diff.mean()), 6),
+                    "ci_low": round(float(np.percentile(dist, 2.5)), 6),
+                    "ci_high": round(float(np.percentile(dist, 97.5)), 6),
+                    "bootstrap_n": N_BOOTSTRAP,
+                    "bootstrap_seed": BOOTSTRAP_SEED,
+                    "block_length": input_len,
+                    "n_test_windows": len(diff),
+                }
+            )
+
+            for block_length in (24, 48, 96, 192):
+                sensitivity_dist = _bootstrap_distribution(
+                    diff,
+                    block_length=block_length,
+                    reps=1000,
+                    seed=BOOTSTRAP_SEED,
+                )
+                sensitivity_rows.append(
+                    {
+                        "model_pair": f"{a}_vs_{b}",
+                        "metric": metric.upper(),
+                        "block_length": block_length,
+                        "ci_low": round(float(np.percentile(sensitivity_dist, 2.5)), 6),
+                        "ci_high": round(float(np.percentile(sensitivity_dist, 97.5)), 6),
+                        "ci_width": round(
+                            float(np.percentile(sensitivity_dist, 97.5) - np.percentile(sensitivity_dist, 2.5)),
+                            6,
+                        ),
+                    }
+                )
+
+    intervals_df = pd.DataFrame(rows)
+    sensitivity_df = pd.DataFrame(sensitivity_rows)
+    intervals_df.to_csv(results_dir / "bootstrap_intervals.csv", index=False)
+    sensitivity_df.to_csv(results_dir / "bootstrap_block_sensitivity.csv", index=False)
+    return intervals_df, sensitivity_df
 
 
-# ============================================================
-# Entry point
-# ============================================================
+def run_analysis(config_path=None, *, results_dir=None):
+    cfg = apply_runtime_overrides(load_config(config_path), smoke=False, results_dir=results_dir)
+    results_path = cfg["results_dir"]
+    data = prepare_supervised_data(cfg["data_path"], cfg["input_len"], cfg["output_len"])
+    y_test_orig = data["y_test_orig"]
+
+    per_seed = export_per_seed_metrics(y_test_orig, Path(results_path), cfg["seeds"])
+    complexity = export_complexity_metrics(Path(results_path))
+    intervals, sensitivity = export_bootstrap_intervals(y_test_orig, Path(results_path), cfg["input_len"])
+    return {
+        "per_seed": per_seed,
+        "complexity": complexity,
+        "intervals": intervals,
+        "sensitivity": sensitivity,
+    }
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(description="Post-training metrics and moving-block bootstrap.")
+    parser.add_argument("--config", default="configs/experiments/fair_core_v2.yaml")
+    parser.add_argument("--results-dir", default=None)
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
+    run_analysis(args.config, results_dir=args.results_dir)
+
+
 if __name__ == "__main__":
-    print("=" * 70)
-    print("Post-training analysis (S-09c merged)")
-    print("=" * 70)
-
-    print("\n[1/3] Per-seed metrics → results/per_seed_metrics.csv")
-    y_test_orig = rebuild_y_test_orig()
-    per_seed = export_per_seed_metrics(y_test_orig)
-    print(per_seed.to_string(index=False))
-
-    print("\n[2/3] § 14 complexity metrics → results/complexity_metrics.csv")
-    complexity = export_complexity_metrics()
-    print(complexity[["model", "n_params", "architectural_category"]].to_string(index=False))
-
-    print("\n[3/3] § 16 paired-bootstrap intervals → results/bootstrap_intervals.csv")
-    boot = export_bootstrap_intervals(y_test_orig)
-    significant = boot[(boot["ci_low"] > 0) | (boot["ci_high"] < 0)]
-    print(f"  {len(boot)} intervals total, {len(significant)} with CI excluding zero")
-
-    print("\nDone. § 16 reminder: intervals are comparative uncertainty evidence, not strict independent-sample inference.")
+    main()
