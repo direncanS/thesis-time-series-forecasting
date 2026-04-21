@@ -15,6 +15,7 @@ CONFIG ?= configs/experiments/fair_core_v2.yaml
 .PHONY: help test lint smoke \
         train train-core train-tft \
         analyze export-preds per-horizon bootstrap \
+        tables tables-verify \
         all clean
 
 help:
@@ -60,7 +61,13 @@ bootstrap:
 
 analyze: export-preds per-horizon bootstrap
 
-all: train analyze test
+tables:
+	$(PYTHON) scripts/regen_tables.py
+
+tables-verify:
+	$(PYTHON) scripts/regen_tables.py --verify
+
+all: train analyze tables test
 
 clean:
 	$(PYTHON) -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__')]"

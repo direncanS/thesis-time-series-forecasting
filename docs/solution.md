@@ -72,7 +72,11 @@ For LR, MLP, and LSTM, the component runs the **SHAP** algorithm (Lundberg and L
 
 For TFT, the component reads the architecture-native **Variable Selection Network (VSN)** importance produced by `pytorch-forecasting` and writes it to `results/tft_importance.csv`. SHAP and VSN are *not equivalent* explanation methods: SHAP is a post-hoc attribution layer applied to a fixed prediction function, whereas VSN is an intrinsic component of the TFT architecture whose weights are co-optimised with the rest of the network. Section § 4.2 below treats this distinction in detail and constrains the cross-method comparison to qualitative observations.
 
-A faithfulness layer (`src/explainability/faithfulness_test.py`) is wired into this component but is currently **PENDING** validation (`docs/VALIDATION_LOG.md`). A dedicated stability layer was previously prototyped but was dropped on 2026-04-20 (S-11 archive migration; `stability_test.py` retrained models under lr=0.001 + 50-epoch + single-seed, inconsistent with § 10 locked defaults); explanation-stability in the present thesis is therefore restricted to the seed-CV evidence already produced by the 3-seed training pipeline (§ 3.4). Any explanation result discussed in this thesis is reported under the preliminary-results clause of § 20: observations may be reported, but no definitive comparison or causal explanation may be drawn until the faithfulness script moves from PENDING to VALIDATED.
+A faithfulness layer (`src/explainability/faithfulness_test.py`) reports AOPC — Area Over Perturbation Curve, Samek et al. (2017) — over the occlusion ranks produced by the common XAI instrument (§ 4.2). A dedicated input-perturbation stability layer was prototyped but was dropped on 2026-04-20 (S-11 archive migration; `stability_test.py` retrained models under lr=0.001 + 50-epoch + single-seed, inconsistent with § 10 locked defaults); explanation-stability in the present thesis is therefore restricted to the seed-CV evidence already produced by the training pipeline (§ 3.4).
+
+<!-- @begin-include _generated/status_summary.md -->
+Tables and figures in this section are auto-generated from v1 baseline artefacts (pre-B5 rerun; source: `archive/pre-v2-2026-04-22/results/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
+<!-- @end-include -->
 
 ## 3.7 Reproducibility Verification Component
 
@@ -94,14 +98,14 @@ This section reports the **observed overall performance** of the four core model
 
 The per-seed mean and standard deviation of each metric over seeds {42, 123, 456} are reported below; LR is deterministic.
 
+<!-- @begin-include _generated/overall_metrics_table.md -->
 | Model | Parameter count | MSE (mean ± std) | MAE (mean ± std) | RMSE (mean ± std) | Best epochs (per seed) |
 |-------|-----------------|-------------------|-------------------|---------------------|--------------------------|
-| LR    |  113 064        | 7.66              | 1.47              | 2.77                | — (closed-form)          |
-| MLP   |  124 328        | 9.36 ± 0.11       | 1.80 ± 0.03       | 3.06 ± 0.02         | 13 / 19 / 21             |
-| LSTM  |   29 608        | 12.67 ± 0.46      | 2.14 ± 0.05       | 3.56 ± 0.07         | 19 / 34 / 42             |
-| TFT   |   18 261        | 14.19 ± 0.68      | 2.32 ± 0.07       | 3.77 ± 0.09         | 5 / 14 / 9               |
-
-The observed overall ordering on every reported metric, under the present configuration, is **LR < MLP < LSTM < TFT** (lower error first). The same ordering holds when point estimates are recomputed from seed-averaged-prediction ensembles rather than per-seed metric means: LR 7.66, MLP 8.96, LSTM 11.92, TFT 12.80. The gap between the two computation modes (per-seed mean vs ensemble) varies systematically across models (§ 4.1), which is itself a § 17 Internal-validity observation.
+| LR    | 113 064      | 7.66 | 1.47 | 2.77 | — (closed-form) |
+| MLP   | 124 328      | 9.36 ± 0.05 | 1.79 ± 0.02 | 3.06 ± 0.01 | 13 / 24 / 21 |
+| LSTM  |  29 608      | 12.71 ± 0.33 | 2.16 ± 0.03 | 3.56 ± 0.05 | 24 / 37 / 39 |
+| TFT   |  18 261      | 14.19 ± 0.68 | 2.32 ± 0.07 | 3.77 ± 0.09 | 5 / 14 / 9 |
+<!-- @end-include -->
 
 ### 3.8.2 Pairwise uncertainty intervals
 
@@ -109,16 +113,16 @@ Paired-bootstrap 95 % confidence intervals on the mean per-window error differen
 
 For the MSE metric, the six pairwise intervals are:
 
+<!-- @begin-include _generated/bootstrap_headline.md -->
 | Pair (A vs B) | Mean diff (A − B) | 95 % CI         |
 |---------------|--------------------|-----------------|
-| LR vs MLP     | −1.30              | [−1.39, −1.22]  |
-| LR vs LSTM    | −4.26              | [−4.44, −4.08]  |
-| LR vs TFT     | −5.14              | [−5.31, −4.96]  |
-| MLP vs LSTM   | −2.95              | [−3.16, −2.76]  |
-| MLP vs TFT    | −3.84              | [−4.01, −3.66]  |
-| LSTM vs TFT   | −0.88              | [−1.03, −0.74]  |
-
-All six intervals exclude zero, so all six pairwise mean MSE differences are statistically distinguishable at the bootstrap-CI level under the present configuration. The MAE and RMSE intervals tell the same story (`results/bootstrap_intervals.csv`).
+| LR vs MLP     |   -1.31            | [ -1.40,  -1.22] |
+| LR vs LSTM    |   -4.40            | [ -4.57,  -4.23] |
+| LR vs TFT     |   -5.14            | [ -5.31,  -4.96] |
+| MLP vs LSTM   |   -3.10            | [ -3.29,  -2.91] |
+| MLP vs TFT    |   -3.84            | [ -4.01,  -3.66] |
+| LSTM vs TFT   |   -0.74            | [ -0.88,  -0.60] |
+<!-- @end-include -->
 
 ### 3.8.3 Complexity context
 
@@ -126,6 +130,10 @@ Three operationalisations of "complexity" are reported (§ 14, `results/complexi
 
 The three orderings are mutually orthogonal: parameter-count ordering is **MLP > LR > LSTM > TFT**, architectural-category ordering is **LR < MLP < LSTM < TFT**, and accuracy ordering (lower error first) is **LR > MLP > LSTM > TFT**. None of the three coincide. This three-way orthogonality is taken up in § 4.1 and § 4.3 as a material framing point for RQ1 and RQ3.
 
-### 3.8.4 Aggregated explainability outputs (preliminary)
+### 3.8.4 Aggregated explainability outputs
 
-The per-feature SHAP attribution profiles for LR / MLP / LSTM and the VSN importance vector for TFT are written to `results/shap_<model>.csv` and `results/tft_importance.csv` respectively. These outputs are reported here as **preliminary** under § 20 because the SHAP scripts (`src/explainability/shap_lr.py`, `src/explainability/shap_mlp.py`, `src/explainability/shap_lstm.py`) and the faithfulness script (`src/explainability/faithfulness_test.py`) are PENDING in `docs/VALIDATION_LOG.md`. A dedicated stability layer was dropped in the S-11 archive migration (see § 3.6 above); explanation-stability is therefore covered only by the seed-CV evidence from the 3-seed training pipeline, and the present section makes no standalone stability claim. Final claims about explanation quality, agreement, and faithfulness await the corresponding `ml-experiment-auditor` sign-off; the chapter therefore confines itself to the observation that the explainability artefacts have been generated and are aligned with the same checkpoints used in §§ 3.8.1–3.8.2.
+The per-feature SHAP attribution profiles for LR / MLP / LSTM and the VSN importance vector for TFT are written to `results/shap_<model>.csv` and `results/tft_importance.csv` respectively. Under the v6.1 plan the primary cross-model explanation instrument is the model-agnostic occlusion importance produced by `src/explainability/common_importance.py` (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. A dedicated stability layer was dropped in the S-11 archive migration (see § 3.6 above); explanation-stability is covered only by the seed-CV evidence from the training pipeline, and the present section makes no standalone stability claim.
+
+<!-- @begin-include _generated/status_summary.md -->
+Tables and figures in this section are auto-generated from v1 baseline artefacts (pre-B5 rerun; source: `archive/pre-v2-2026-04-22/results/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
+<!-- @end-include -->

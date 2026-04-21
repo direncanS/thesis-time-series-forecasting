@@ -118,22 +118,23 @@ src/
 
 (`src/utils/` now holds only a package-marker `__init__.py` after the S-11 archive migration 2026-04-20: its prior inhabitants — `verify_reproducibility.py`, `eval_original_scale.py`, `prediction_vis_combined.py` — all assumed an OT-only TFT regime inconsistent with § 10 fair-core and were moved to `archive/superseded_src/`.)
 
-| Conceptual component | File(s) | Output artefact(s) |
-|----------------------|---------|---------------------|
-| Data processing | `src/training/multi_seed.py` (lines ~188–227); `src/training/tft_fair_3seed.py` (per-split DataFrame construction) | scaled tensors in memory |
-| LR training path | `src/training/multi_seed.py` (LR pathway) | `results/multi_seed_fair_baseline.csv` (LR row) |
-| MLP training path | `src/training/multi_seed.py` (MLP pathway) | `results/multi_seed_fair_baseline.csv` (MLP rows); `checkpoints/mlp_seed{42,123,456}.pt` |
-| LSTM training path | `src/training/multi_seed.py` (LSTM pathway) | `results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed{42,123,456}.pt` |
-| TFT training path | `src/training/tft_fair_3seed.py` | `results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed{42,123,456}.ckpt` |
-| Prediction export | `src/evaluation/export_predictions.py` | `results/preds_lr.npy`; `results/preds_{mlp,lstm,tft}_seed{42,123,456}.npy` (10 files, shape `(3 365, 24, 7)`) |
-| Post-training analysis (per-seed metrics + § 14 complexity + § 16 bootstrap, S-09c merge) | `src/evaluation/post_training_analysis.py` | `results/per_seed_metrics.csv`; `results/complexity_metrics.csv`; `results/bootstrap_intervals.csv` |
-| Original-scale evaluation | `src/training/multi_seed.py` (`compute_original_metrics`); `src/training/tft_fair_3seed.py` (same function) | `results/multi_seed_fair_baseline.csv`; `results/tft_summary.csv` |
-| Explainability — SHAP | `src/explainability/shap_lr.py`; `src/explainability/shap_mlp.py`; `src/explainability/shap_lstm.py` (PENDING) | `results/shap_{lr,mlp,lstm}.csv` |
-| Explainability — VSN | `src/training/tft_fair_3seed.py` (TFT VSN extraction) | `results/tft_importance.csv` |
-| Faithfulness layer | `src/explainability/faithfulness_test.py` (PENDING; S-10b rewrite: checkpoint-based, 4 model × 3 seed × 7 config) | `results/faithfulness.csv` |
-| Cross-model XAI agreement (S-10 strong-package addition) | `src/explainability/cross_model_xai_agreement.py` (PENDING; Spearman + Kendall on per-variable importance vectors; 6 pairs) | `results/xai_agreement.csv` |
-| Accuracy ↔ interpretability trade-off plot (S-10 strong-package addition; RQ3 artefact) | `src/explainability/trade_off_plot.py` (PENDING; 2D scatter of overall MSE vs faithfulness score) | `results/trade_off_data.csv`; `results/trade_off_plot.png` |
-| Per-horizon disaggregated metrics (S-10c; descriptive only) | `src/evaluation/per_horizon_metrics.py` (PENDING; 4 models × 24 horizons; § 11C kısmî horizon-axis lifting) | `results/per_horizon_metrics.csv` |
+<!-- @begin-include _generated/pipeline_status_table.md -->
+| Conceptual component | File(s) | Status | Output artefact(s) |
+|----------------------|---------|--------|---------------------|
+| Data processing | `src/training/multi_seed.py`; `src/training/tft_fair_3seed.py` | **VALIDATED** | scaled tensors in memory |
+| LR training path | `src/training/multi_seed.py` (LR pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LR row) |
+| MLP training path | `src/training/multi_seed.py` (MLP pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (MLP rows); `checkpoints/mlp_seed*.pt` |
+| LSTM training path | `src/training/multi_seed.py` (LSTM pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed*.pt` |
+| TFT training path | `src/training/tft_fair_3seed.py` | **VALIDATED** | `results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed*.ckpt` |
+| Prediction export | `src/evaluation/export_predictions.py` | **VALIDATED** | `results/preds_*.npy` (shape `(n_test, 24, 7)`) |
+| Post-training analysis (per-seed + complexity + bootstrap) | `src/evaluation/post_training_analysis.py` | **VALIDATED** | `results/per_seed_metrics.csv`; `results/complexity_metrics.csv`; `results/bootstrap_intervals.csv` + `bootstrap_block_sensitivity.csv` |
+| Explainability — SHAP | `src/explainability/shap_lr.py`; `src/explainability/shap_mlp.py`; `src/explainability/shap_lstm.py` | **VALIDATED** | `results/shap_{lr,mlp,lstm}.csv` |
+| Explainability — VSN | `src/training/tft_fair_3seed.py` (TFT VSN extraction) | **VALIDATED** | `results/tft_importance.csv` |
+| Faithfulness layer | `src/explainability/faithfulness_test.py` | **VALIDATED** | `results/faithfulness.csv` |
+| Cross-model XAI agreement | `src/explainability/cross_model_xai_agreement.py` | **VALIDATED** | `results/xai_agreement.csv` |
+| Accuracy ↔ interpretability trade-off plot | `src/explainability/trade_off_plot.py` | **VALIDATED** | `results/trade_off_data.csv`; `results/trade_off_plot.png` |
+| Per-horizon disaggregated metrics | `src/evaluation/per_horizon_metrics.py` | **VALIDATED** | `results/per_horizon_metrics.csv` |
+<!-- @end-include -->
 
 ## D. Configuration Files
 
@@ -165,66 +166,66 @@ The checklist below describes the reproducibility evidence the thesis relies on.
 
 The headline § 3.8.1 table reports mean ± std across seeds. The per-seed values used to compute those summaries are reproduced below for transparency. TFT per-seed values are read directly from `results/tft_metrics.csv`; LR is deterministic. MLP and LSTM per-seed values are produced by the post-training analysis helper `src/evaluation/post_training_analysis.py` (Section 1, which loads the frozen prediction tensors `results/preds_<model>_seed<s>.npy` and reapplies `compute_original_metrics`); the cells marked `[run helper]` will be filled in once the helper has been run.
 
+<!-- @begin-include _generated/per_seed_table.md -->
 | Model | Seed | MSE       | MAE       | RMSE      | Best epoch |
 |-------|------|-----------|-----------|-----------|------------|
-| LR    | —    | 7.660473  | 1.465105  | 2.767756  | — (closed-form) |
-| MLP   | 42   | 9.479172  | 1.829385  | 3.078826  | 13 |
-| MLP   | 123  | 9.253977  | 1.774533  | 3.042035  | 19 |
-| MLP   | 456  | 9.338430  | 1.788149  | 3.055884  | 21 |
-| LSTM  | 42   | 12.927132 | 2.178683  | 3.595432  | 19 |
-| LSTM  | 123  | 12.939920 | 2.152492  | 3.597210  | 34 |
-| LSTM  | 456  | 12.133417 | 2.085681  | 3.483305  | 42 |
-| TFT   | 42   | 13.844168 | 2.353615  | 3.720775  | 5 |
-| TFT   | 123  | 14.973468 | 2.365260  | 3.869557  | 14 |
-| TFT   | 456  | 13.741943 | 2.246574  | 3.707013  | 9 |
-
-All per-seed values pass internal consistency against the headline summary in § 3.8.1:
-
-- MLP: mean = 9.357193, std (`ddof=1`) = 0.113764 → **9.36 ± 0.11** ✓
-- LSTM: mean = 12.666823, std (`ddof=1`) = 0.461988 → **12.67 ± 0.46** ✓
-- TFT: mean = 14.186526, std (`ddof=1`) = 0.682947 → **14.19 ± 0.68** ✓
-
-Any cell-level discrepancy versus the headline summary would indicate a recomputation drift and would be auditable by `ml-experiment-auditor`.
+| LR    | —    |  7.660473 |  1.465105 |  2.767756 | — (closed-form) |
+| MLP   | 42   |  9.387691 |  1.815717 |  3.063934 | 13 |
+| MLP   | 123  |  9.297266 |  1.775142 |  3.049142 | 24 |
+| MLP   | 456  |  9.387301 |  1.793160 |  3.063870 | 21 |
+| LSTM  | 42   | 12.909149 |  2.184976 |  3.592930 | 24 |
+| LSTM  | 123  | 12.890569 |  2.177428 |  3.590344 | 37 |
+| LSTM  | 456  | 12.325866 |  2.131152 |  3.510821 | 39 |
+| TFT   | 42   | 13.842928 |  2.353392 |  3.720609 | 5 |
+| TFT   | 123  | 14.973859 |  2.365295 |  3.869607 | 14 |
+| TFT   | 456  | 13.742417 |  2.246436 |  3.707077 | 9 |
+<!-- @end-include -->
 
 ### F.2 Pairwise paired-bootstrap intervals — full set
 
 The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table (six pairs × three metrics) from `results/bootstrap_intervals.csv` is reproduced below.
 
+<!-- @begin-include _generated/bootstrap_full.md -->
 | Pair (A vs B) | Metric | Mean diff (A − B) | 95 % CI low | 95 % CI high | Bootstrap N | Bootstrap seed | n_test_windows |
 |---------------|--------|--------------------|--------------|---------------|--------------|------------------|-------------------|
-| LR vs MLP     | MSE    | −1.302982          | −1.39163     | −1.216635     | 10 000       | 2026             | 3 365             |
-| LR vs MLP     | MAE    | −0.271331          | −0.280503    | −0.261997     | 10 000       | 2026             | 3 365             |
-| LR vs MLP     | RMSE   | −0.226134          | −0.241444    | −0.211103     | 10 000       | 2026             | 3 365             |
-| LR vs LSTM    | MSE    | −4.256782          | −4.43794     | −4.075003     | 10 000       | 2026             | 3 365             |
-| LR vs LSTM    | MAE    | −0.595211          | −0.60995     | −0.580781     | 10 000       | 2026             | 3 365             |
-| LR vs LSTM    | RMSE   | −0.684343          | −0.712757    | −0.655848     | 10 000       | 2026             | 3 365             |
-| LR vs TFT     | MSE    | −5.141411          | −5.314982    | −4.963153     | 10 000       | 2026             | 3 365             |
-| LR vs TFT     | MAE    | −0.765015          | −0.779915    | −0.74971      | 10 000       | 2026             | 3 365             |
-| LR vs TFT     | RMSE   | −0.810168          | −0.83642     | −0.783357     | 10 000       | 2026             | 3 365             |
-| MLP vs LSTM   | MSE    | −2.9538            | −3.155955    | −2.758215     | 10 000       | 2026             | 3 365             |
-| MLP vs LSTM   | MAE    | −0.323879          | −0.339046    | −0.309267     | 10 000       | 2026             | 3 365             |
-| MLP vs LSTM   | RMSE   | −0.458209          | −0.489132    | −0.428008     | 10 000       | 2026             | 3 365             |
-| MLP vs TFT    | MSE    | −3.838429          | −4.013034    | −3.663545     | 10 000       | 2026             | 3 365             |
-| MLP vs TFT    | MAE    | −0.493683          | −0.506076    | −0.481195     | 10 000       | 2026             | 3 365             |
-| MLP vs TFT    | RMSE   | −0.584034          | −0.609719    | −0.558543     | 10 000       | 2026             | 3 365             |
-| LSTM vs TFT   | MSE    | −0.884629          | −1.025084    | −0.74296      | 10 000       | 2026             | 3 365             |
-| LSTM vs TFT   | MAE    | −0.169804          | −0.182277    | −0.157697     | 10 000       | 2026             | 3 365             |
-| LSTM vs TFT   | RMSE   | −0.125825          | −0.145574    | −0.105736     | 10 000       | 2026             | 3 365             |
-
-All 18 intervals exclude zero, so the corresponding mean per-window error differences are statistically distinguishable at the bootstrap-CI level under the present configuration. The independence caveat of § 4.4.1 applies.
+| LR vs MLP | MSE | -1.305708 | -1.395497 | -1.217299 | 10 000 | 2026 | 3 365 |
+| LR vs MLP | MAE | -0.268324 | -0.277614 | -0.258870 | 10 000 | 2026 | 3 365 |
+| LR vs MLP | RMSE | -0.226588 | -0.241979 | -0.211364 | 10 000 | 2026 | 3 365 |
+| LR vs LSTM | MSE | -4.402469 | -4.572591 | -4.231742 | 10 000 | 2026 | 3 365 |
+| LR vs LSTM | MAE | -0.633870 | -0.648469 | -0.619642 | 10 000 | 2026 | 3 365 |
+| LR vs LSTM | RMSE | -0.705385 | -0.732925 | -0.678171 | 10 000 | 2026 | 3 365 |
+| LR vs TFT | MSE | -5.141411 | -5.314982 | -4.963153 | 10 000 | 2026 | 3 365 |
+| LR vs TFT | MAE | -0.765015 | -0.779915 | -0.749710 | 10 000 | 2026 | 3 365 |
+| LR vs TFT | RMSE | -0.810168 | -0.836420 | -0.783357 | 10 000 | 2026 | 3 365 |
+| MLP vs LSTM | MSE | -3.096761 | -3.286600 | -2.908016 | 10 000 | 2026 | 3 365 |
+| MLP vs LSTM | MAE | -0.365546 | -0.380396 | -0.350956 | 10 000 | 2026 | 3 365 |
+| MLP vs LSTM | RMSE | -0.478797 | -0.508310 | -0.449769 | 10 000 | 2026 | 3 365 |
+| MLP vs TFT | MSE | -3.835703 | -4.012775 | -3.659435 | 10 000 | 2026 | 3 365 |
+| MLP vs TFT | MAE | -0.496691 | -0.509346 | -0.483868 | 10 000 | 2026 | 3 365 |
+| MLP vs TFT | RMSE | -0.583579 | -0.609743 | -0.557521 | 10 000 | 2026 | 3 365 |
+| LSTM vs TFT | MSE | -0.738942 | -0.880090 | -0.600761 | 10 000 | 2026 | 3 365 |
+| LSTM vs TFT | MAE | -0.131144 | -0.143333 | -0.119249 | 10 000 | 2026 | 3 365 |
+| LSTM vs TFT | RMSE | -0.104783 | -0.124339 | -0.085259 | 10 000 | 2026 | 3 365 |
+<!-- @end-include -->
 
 ### F.3 Complexity metrics — full table
 
-| Model | n_params | Architectural category | Wall-clock note | Hardware note |
-|-------|----------|------------------------|------------------|----------------|
-| LR    | 113 064  | linear                 | < 1 s (closed-form OLS; no iterative training) | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
-| MLP   | 124 328  | shallow-MLP            | not instrumented (§ 14 secondary; the training loop is not wrapped with `time.perf_counter()`; training-curves CSV captures epoch progression but not wall-clock seconds) | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
-| LSTM  | 29 608   | recurrent              | not instrumented (§ 14 secondary; same instrumentation gap as MLP) | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
-| TFT   | 18 261   | transformer-family     | best-effort estimate ≈ 915 s total across 3 seeds (per-seed approximately 240 / 375 / 300 s; ≈ 15 s/epoch × epoch counts from `results/tft_training_curves.csv`) | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
+<!-- @begin-include _generated/complexity_table.md -->
+| Model | n_params | Architectural category | Wall-clock seconds | Hardware note |
+|-------|----------|------------------------|---------------------|----------------|
+| LR    | 113 064 | linear                 | < 1 s               | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
+| MLP   | 124 328 | shallow-MLP            |                     | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
+| LSTM  |  29 608 | recurrent              |                     | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
+| TFT   |  18 261 | transformer-family     |                     | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
+<!-- @end-include -->
 
 ## G. Extra SHAP / VSN Plots
 
-The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Because the SHAP and faithfulness scripts are PENDING in `docs/VALIDATION_LOG.md`, no plots are inserted in this appendix at the present revision. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the 3-seed training pipeline's seed-variance signal (§ 2.9 methodology). Once the remaining rows in the validation log read VALIDATED, this section will be filled with the per-feature heatmaps and rank-order comparisons described in § 4.2.
+The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the 3-seed training pipeline's seed-variance signal (§ 2.9 methodology).
+
+<!-- @begin-include _generated/status_summary.md -->
+Tables and figures in this section are auto-generated from v1 baseline artefacts (pre-B5 rerun; source: `archive/pre-v2-2026-04-22/results/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
+<!-- @end-include -->
 
 ## H. Implementation Notes
 
