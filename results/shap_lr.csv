@@ -1,8 +1,0 @@
-model,method,variable,shap_importance,coef_importance,shap_rank,coef_rank,n_eval,eval_seed,n_bg,bg_seed,shap_baseline
-Linear Regression,SHAP (LinearExplainer),HUFL,0.055967185350090105,0.04985050738412108,1,1,100,42,full_X_train_flat,,train_mean_scaled
-Linear Regression,SHAP (LinearExplainer),MUFL,0.05151456613504066,0.04760607953331235,2,2,100,42,full_X_train_flat,,train_mean_scaled
-Linear Regression,SHAP (LinearExplainer),OT,0.027321340303598,0.02448343277856098,3,3,100,42,full_X_train_flat,,train_mean_scaled
-Linear Regression,SHAP (LinearExplainer),HULL,0.019340897762776515,0.024230772416777815,4,4,100,42,full_X_train_flat,,train_mean_scaled
-Linear Regression,SHAP (LinearExplainer),MULL,0.015032161005239252,0.022359671470798804,5,5,100,42,full_X_train_flat,,train_mean_scaled
-Linear Regression,SHAP (LinearExplainer),LULL,0.011558183669428512,0.01913625810335882,6,6,100,42,full_X_train_flat,,train_mean_scaled
-Linear Regression,SHAP (LinearExplainer),LUFL,0.011175722435041514,0.015885553286160398,7,7,100,42,full_X_train_flat,,train_mean_scaled
