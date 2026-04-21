@@ -357,7 +357,7 @@ for rank, idx in enumerate(mean_ranking):
     )
 
 if lr_ranking and mlp_ranking:
-    print(f"\n3-way ranking comparison (position):")
+    print("\n3-way ranking comparison (position):")
     print(f"  {'Rank':<5} {'LR':<10} {'MLP':<10} {'LSTM':<10}")
     print("  " + "-" * 35)
     for rank in range(7):
@@ -442,8 +442,8 @@ cross_df.to_csv(cross_path)
 print(f"Saved: {cross_path} (seed-averaged 7×7 cross-variable matrix)")
 
 print("\nVERIFICATION CHECKLIST:")
-print(f"  [x] 3 seeds loaded from checkpoints/lstm_seed{{42,123,456}}.pt")
-print(f"  [x] SHAP run on best-val-loss checkpoints (SUSPECT-09 guard)")
-print(f"  [x] § 11A item 9 validation/checkpoint selection symmetric with multi_seed.py")
+print("  [x] 3 seeds loaded from checkpoints/lstm_seed{42,123,456}.pt")
+print("  [x] SHAP run on best-val-loss checkpoints (SUSPECT-09 guard)")
+print("  [x] § 11A item 9 validation/checkpoint selection symmetric with multi_seed.py")
 print(f"  [x] Explainer: {explainer_used} (SUSPECT-08 documented in CSV)")
-print(f"  [x] Per-seed + mean-across-seeds rows in CSV (S-09 stability-ready)")
+print("  [x] Per-seed + mean-across-seeds rows in CSV (S-09 stability-ready)")

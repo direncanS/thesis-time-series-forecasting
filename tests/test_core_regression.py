@@ -30,11 +30,10 @@ import numpy as np
 import pytest
 import torch
 from sklearn.linear_model import LinearRegression
-
 from src.common import (
+    DEFAULT_CONFIG,
     MLP,
     LSTMModel,
-    DEFAULT_CONFIG,
     inverse_transform_3d,
     prepare_supervised_data,
 )

@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thesis-bachelor-safe"
+version = "0.1.0"
+description = "Fair-core time-series forecasting + interpretability pipeline (bachelor thesis; Closure Plan v6.1)."
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+  { name = "Diren Cansahin", email = "direncansahin@gmail.com" }
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "tests*"]
+exclude = ["archive*", "docs*", "configs*", "results*", "checkpoints*", "lightning_logs*", "References*", "scripts*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+  "-ra",
+  "--strict-markers",
+]
+markers = [
+  "slow: tests that exercise real training / GPU paths (> ~30s)",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests", "scripts"]
+extend-exclude = ["archive", "lightning_logs", "results", "checkpoints", "References"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = [
+  "E501",   # line length handled by formatter
+  "E741",   # ambiguous var names like `l` (common in ML code)
+  "B008",   # function call in default arg (torch common pattern)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["F401"]
+"src/common.py" = ["F401"]
+# Legacy iteration patterns. B905 (zip-without-strict) + B007 (unused loop var) are
+# cosmetic; the SHAP layer is scheduled for rewrite in B7 (common XAI occlusion) and
+# the bootstrap + VSN iteration patterns are intentional (same-length guarantees by
+# upstream contract). Revisit after B7/B8 rewrites.
+"src/explainability/*.py" = ["B905", "B007"]
+"src/evaluation/post_training_analysis.py" = ["B905", "B007"]
+"src/training/tft_fair_3seed.py" = ["B905"]

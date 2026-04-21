@@ -1,0 +1,19 @@
+# Linear Regression baseline (reference / documentation config).
+#
+# Closed-form OLS (sklearn.linear_model.LinearRegression, default
+# fit_intercept=True). No gradient-based hyperparameters; no learning rate;
+# no epochs; no weight decay.
+#
+# LR exempts from the stochastic 5-flag FP32 block (CLAUDE.md § 11A item 9
+# deterministic-baseline exception): no cudnn / matmul path.
+#
+# This file is NOT used by the training pipeline (which consumes
+# configs/experiments/fair_core_v2.yaml). It exists as the single-model
+# documentation artefact for viva + audit-trail purposes.
+
+model: linear_regression
+solver: closed-form-OLS
+deterministic: true
+device: cpu
+fit_intercept: true
+log_format: "[v2] model=LR solver=closed-form device=cpu deterministic=True"

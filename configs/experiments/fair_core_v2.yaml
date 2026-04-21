@@ -1,0 +1,24 @@
+# Closure Plan v6.1 B5 fair-core v2 rerun target.
+#
+# - Unified loss: TFT uses src/common.py::UnifiedMSE (reduction="mean" over
+#   flattened tensor); MLP/LSTM use nn.MSELoss. Both reduce over all elements
+#   → gradient-direction + magnitude symmetric. Replaces v1's
+#   MultiLoss([MSE() for 7]) 7×-asymmetric TFT loss. C1 closure target.
+# - 5-flag FP32 regime (stochastic scope): TF32 explicitly disabled across
+#   matmul + cudnn; cudnn.deterministic=True; cudnn.benchmark=False. LR
+#   exempt per CLAUDE.md § 11A item 9. C2 closure target.
+# - 5 seeds: [42, 123, 456, 789, 1024]. C4 partial closure (bachelor-safe
+#   defensible).
+# - Output: results/bachelor_safe_v2/, checkpoints/bachelor_safe_v2/. C14
+#   wall-clock instrumentation per seed via runtime_seconds.csv.
+#
+# Execute:
+#   python src/training/multi_seed.py     --config configs/experiments/fair_core_v2.yaml
+#   python src/training/tft_fair_3seed.py --config configs/experiments/fair_core_v2.yaml
+#   python src/evaluation/export_predictions.py   --config configs/experiments/fair_core_v2.yaml
+#   python src/evaluation/post_training_analysis.py --config configs/experiments/fair_core_v2.yaml
+#   python src/evaluation/per_horizon_metrics.py  --config configs/experiments/fair_core_v2.yaml
+#
+# Or via Make: `make train` then `make analyze`.
+
+extends: ../base.yaml

@@ -24,3 +24,9 @@ pandas>=2.2,<3
 scikit-learn>=1.5,<2
 shap>=0.45,<1
 matplotlib>=3.8,<4
+
+# --- B3 additions (Closure Plan v6.1 — 2026-04-22) ---
+pyyaml>=6          # src/common.py::load_config YAML parsing
+arch>=7.0          # src/evaluation/post_training_analysis.py moving-block bootstrap
+pytest>=8          # tests/ runner
+ruff>=0.5          # linter (configured via pyproject.toml::[tool.ruff])

@@ -79,7 +79,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
 MODELS_ORDERED = ["LR", "MLP", "LSTM", "TFT"]
 MODEL_COLORS = {"LR": "tab:blue", "MLP": "tab:orange", "LSTM": "tab:green", "TFT": "tab:red"}
 

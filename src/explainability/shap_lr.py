@@ -28,11 +28,12 @@ Verification:
       (exact match not required due to correlation effects)
 """
 
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
 import os
+
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
 # Check SHAP availability
 try:
@@ -145,7 +146,7 @@ elif isinstance(shap_values, np.ndarray):
         exit(1)
 else:
     # shap.Explanation object (newer API)
-    print(f"SHAP returned Explanation object")
+    print("SHAP returned Explanation object")
     vals = shap_values.values
     print(f"Values shape: {vals.shape}")
     if vals.ndim == 3:
@@ -197,7 +198,7 @@ print("=" * 70)
 
 # SHAP ranking
 shap_ranking = np.argsort(-var_importance)
-print(f"\nSHAP Variable Importance (mean |SHAP|, aggregated across all dimensions):")
+print("\nSHAP Variable Importance (mean |SHAP|, aggregated across all dimensions):")
 print(f"  {'Rank':<6} {'Variable':<10} {'Importance':>12}")
 print("  " + "-" * 28)
 for rank, idx in enumerate(shap_ranking):
@@ -205,7 +206,7 @@ for rank, idx in enumerate(shap_ranking):
 
 # Coefficient ranking
 coef_ranking = np.argsort(-coef_var_importance)
-print(f"\nLR Coefficient Importance (mean |coef|, supplementary):")
+print("\nLR Coefficient Importance (mean |coef|, supplementary):")
 print(f"  {'Rank':<6} {'Variable':<10} {'Importance':>12}")
 print("  " + "-" * 28)
 for rank, idx in enumerate(coef_ranking):
@@ -220,7 +221,7 @@ matches = sum(1 for a, b in zip(shap_order, coef_order) if a == b)
 print(f"Position matches: {matches}/7")
 
 # Cross-variable importance matrix
-print(f"\nCross-Variable Importance (input -> output):")
+print("\nCross-Variable Importance (input -> output):")
 print(f"  {'':>10}", end="")
 for v in var_names:
     print(f" {v:>8}", end="")

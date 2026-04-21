@@ -1,0 +1,23 @@
+# TFT baseline (reference / documentation config).
+#
+# pytorch_forecasting.TemporalFusionTransformer; defaults per CLAUDE.md § 10.
+# Multi-target: all 7 ETTh1 variables forecast simultaneously (fair-core
+# multivariate past-only configuration).
+#
+# Loss: src/common.py::UnifiedMSE (single instance; reduction="mean" over
+# flattened tensor; gradient + magnitude symmetric with nn.MSELoss used by
+# MLP/LSTM). Replaces v1's MultiLoss([MSE() for _ in range(7)]) 7×-asymmetric
+# construction. C1 closure rationale.
+
+model: tft
+architecture: transformer-family
+hidden_size: 16
+attention_head_size: 4
+dropout: 0.1
+hidden_continuous_size: 8
+optimizer: adam
+learning_rate: 0.001       # TFT-specific (§ 10)
+weight_decay: 0.0
+gradient_clip_val: 0.1
+loss: UnifiedMSE           # src/common.py
+target: all_7_ETTh1_vars
