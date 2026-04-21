@@ -1,0 +1,7 @@
+model_pair,spearman_corr,kendall_tau,n_features,includes_tft
+LR_vs_MLP,0.785714,0.619048,7,False
+LR_vs_LSTM,0.857143,0.714286,7,False
+LR_vs_TFT,0.357143,0.333333,7,True
+MLP_vs_LSTM,0.714286,0.52381,7,False
+MLP_vs_TFT,0.107143,0.142857,7,True
+LSTM_vs_TFT,0.285714,0.238095,7,True

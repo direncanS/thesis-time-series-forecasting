@@ -1,0 +1,26 @@
+# Thesis project dependencies — S-11.5 env lock (2026-04-20)
+# Anchor: docs/EXPERIMENT_MANIFEST.md:133 (Python 3.11 + torch 2.11.0.dev20260203+cu128 + NVIDIA RTX 5080)
+#
+# INSTALL STRATEGY A (two-stage, default):
+#   Stage 1 (separate command, nightly index):
+#     pip install --pre torch==2.11.0.dev20260203+cu128 \
+#       --index-url https://download.pytorch.org/whl/nightly/cu128
+#   Stage 2 (this file, PyPI default):
+#     pip install -r requirements.txt
+#
+# Torch NOT listed below on purpose — installed in Stage 1 via nightly index.
+# If Strategy B (single-file --extra-index-url) is later chosen, prepend:
+#   --extra-index-url https://download.pytorch.org/whl/nightly/cu128
+#   --pre
+#   torch==2.11.0.dev20260203+cu128
+
+# --- Pinned (manifest anchor) ---
+lightning==2.6.1
+pytorch-forecasting==1.6.1
+numpy==2.2.6
+
+# --- Compatible ranges (manifest does not record exact; must be compatible with the pinned triad) ---
+pandas>=2.2,<3
+scikit-learn>=1.5,<2
+shap>=0.45,<1
+matplotlib>=3.8,<4

@@ -1,0 +1,5 @@
+model,n_params,architectural_category,wall_clock_note,hardware_note
+LR,113064,linear,< 1 sec (deterministic closed-form OLS; no iterative training),"single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64"
+MLP,124328,shallow-MLP,not instrumented (§ 14 secondary — src/training/multi_seed.py does not wrap the training loop with time.perf_counter(); training_curves.csv captures epoch progression but not wall-clock seconds),"single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64"
+LSTM,29608,recurrent,not instrumented (§ 14 secondary — same instrumentation gap as MLP),"single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64"
+TFT,18261,transformer-family,"best-effort estimate ~915 sec total across 3 seeds (per-seed {42: 240, 123: 375, 456: 300}; ~15 sec/epoch × epoch counts from training_curves.csv)","single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64"
