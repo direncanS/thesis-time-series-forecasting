@@ -140,6 +140,14 @@ def run_pipeline(config_path=None, *, smoke=False, results_dir=None, checkpoints
         )
         epoch_collector = EpochMetricsCollector()
 
+        # Lightning Trainer's top-level `deterministic=True` flips on
+        # torch.use_deterministic_algorithms(True) which TFT's upsample_linear1d
+        # backward does not support on CUDA. cudnn.deterministic=True is already
+        # enforced by src.common.configure_stochastic_runtime() for the core
+        # determinism we need; use "warn" here so Lightning keeps the same
+        # intent without hard-failing on the unsupported op.
+        _det_cfg = cfg["precision"]["cudnn_deterministic"]
+        trainer_deterministic = "warn" if _det_cfg else False
         trainer = L.Trainer(
             max_epochs=cfg["max_epochs"],
             accelerator="gpu" if device.type == "cuda" else "cpu",
@@ -149,7 +157,7 @@ def run_pipeline(config_path=None, *, smoke=False, results_dir=None, checkpoints
             enable_progress_bar=not smoke,
             enable_model_summary=False,
             logger=False,
-            deterministic=cfg["precision"]["cudnn_deterministic"],
+            deterministic=trainer_deterministic,
         )
         trainer.fit(tft, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
