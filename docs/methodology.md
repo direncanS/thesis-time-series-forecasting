@@ -76,25 +76,39 @@ Reproducibility operates on two tiers. **Tier 1** is byte-level (deterministic C
 
 ## 2.9 Explainability Protocol
 
-Interpretability is operationalised at the level of **aggregated, model-level feature-importance comparison** (§ 13 of `CLAUDE.md`) and is explicitly not a claim of causal understanding. For LR, MLP, and LSTM, importance is computed with **SHAP** (Lundberg and Lee, 2017) at `N_EVAL = 100`, `EVAL_SEED = 42`. For TFT, the architecture-native **Variable Selection Network (VSN)** importance is used. The two are not equivalent measurement instruments — post-hoc vs architecture-native — and the prose maintains that distinction throughout. Faithfulness is tested, not assumed, following the (in)fidelity framework of Yeh et al. (2019) as implemented in `src/explainability/faithfulness_test.py`. A dedicated perturbation-stability layer was dropped on 2026-04-20 (S-11 archive migration, non-§ 10-compliant protocol); stability is therefore reported only at the seed-variance level from the 3-seed pipeline.
+Interpretability is operationalised at the level of **aggregated, model-level feature-importance comparison** (§ 13 of `CLAUDE.md`) and is explicitly not a claim of causal understanding. The v6.1 plan separates two distinct objects:
 
-### 2.9.0 SHAP baseline specification
+- The **explanation instrument** — how each model's per-variable importance is extracted.
+- The **faithfulness metric** — how the resulting ranking is evaluated against the model's own behaviour under perturbation.
 
-The SHAP baseline is the **training-distribution mean in the scaled input space**, fixed identically across the three post-hoc models for inter-model comparability (§ 11A item 5). Because the `StandardScaler` is fit on the training split only, the zero-vector in the scaled space equals the training-set mean in the original space by construction (`StandardScaler.inverse_transform(0) ≡ scaler.mean_`), so "zero on scaled inputs" and "training-set mean on original inputs" denote the same reference. The choice follows the canonical SHAP framework of Lundberg and Lee (2017), in which attribution is taken relative to the expected prediction under a background reference distribution.
+The primary cross-model instrument is **model-agnostic occlusion importance** (`src/explainability/common_importance.py`); the primary faithfulness metric is **AOPC** (Samek et al., 2017) over the occlusion ranks (`src/explainability/faithfulness_test.py`). SHAP attributions for LR / MLP / LSTM and the TFT Variable Selection Network (VSN) are retained as **auxiliary architecture-specific explanations** and are not used for cross-model comparison; they appear only in the construct-validity discussion of § 4.4.2. A dedicated perturbation-stability layer was dropped on 2026-04-20 (S-11 archive migration, non-§ 10-compliant protocol); stability is therefore reported only at the seed-variance level from the five-seed pipeline.
 
-Operationally, LR uses `shap.LinearExplainer` with the full training set as background. MLP uses `shap.DeepExplainer`; LSTM uses `shap.GradientExplainer` — the switch is an architectural necessity, as `DeepExplainer` does not support `nn.LSTM`. Both neural explainers approximate the baseline via Monte Carlo integration over a fixed background subset of `N_BG = 100`, `BG_SEED = 42` (§ 10). The resulting LR / MLP / LSTM attribution vectors share the same reference and are compared at the rank-trend level in § 2.9.2. The TFT VSN (Lim et al., 2021) is architecture-native and does not admit a reference-distribution specification; the SHAP↔VSN construct gap is handled at the rank-trend comparison itself (§ 2.9.1).
+### 2.9.1 Occlusion as the common explanation instrument
 
-### 2.9.1 SHAP and VSN as different explanation families
+For each (model, seed, variable v), the common instrument establishes a per-model baseline MSE on the scaled test partition, occludes variable v by overwriting its column in the scaled input tensor with the baseline value 0.0, re-predicts with the unchanged checkpoint, and reports `importance(model, seed, v) = occluded_MSE − baseline_MSE`. Higher values indicate the model relied more heavily on variable v. The same procedure is applied verbatim to all four core models; no model-specific branching beyond the `model(x)` forward call enters the top-level loop. Output: `results/bachelor_safe_v2/occlusion_importance.csv` (112 rows: 7 for LR plus 7 per seed for each of MLP, LSTM, TFT).
 
-SHAP (Lundberg and Lee, 2017) is a post-hoc additive feature-attribution framework added on top of a fixed prediction function. VSN (Lim et al., 2021) is architecture-native: its weights are co-optimised with the TFT, and the original paper motivates it on the observation that post-hoc methods do not handle time-series ordering natively. Absolute-value comparison between SHAP and VSN is therefore not meaningful; only rank-trend comparison is used here, and the construct gap between the two explanation families is carried into § 4.4.2 as a Construct-validity threat.
+### 2.9.2 Occlusion baseline specification
 
-### 2.9.2 Cross-model agreement (exploratory construct-validity check)
+The occlusion baseline is 0.0 in the scaled input space, which by the train-only `StandardScaler` construction equals the training-distribution mean in the original space (`StandardScaler.inverse_transform(0) ≡ scaler.mean_`). The choice matches the SHAP baseline convention of Lundberg and Lee (2017), in which attribution is taken relative to the expected prediction under a background reference distribution, and is held identical across all four models for inter-model comparability (§ 11A item 5).
 
-A pairwise rank-correlation analysis between the per-variable importance vectors of the four models is performed (`src/explainability/cross_model_xai_agreement.py`), reporting Spearman ρ and Kendall τ over the seven ETTh1 variables for each of the six pairs. The analysis is exploratory — the primary RQ2 evidence is per-model faithfulness (§ 2.9.3) — and the cross-model layer functions as a construct-validity check. Pairs including TFT cross a SHAP↔VSN method-family boundary and are interpreted at the rank-trend level only (§ 2.9.1).
+### 2.9.3 AOPC as the continuous faithfulness metric
 
-### 2.9.3 Two-dimensional interpretability operationalisation (trade-off plot)
+For each (model, seed), the faithfulness metric is the Area Over Perturbation Curve (AOPC; Samek et al., 2017, time-series adaptation):
 
-For RQ3 a trade-off scatter is produced by `src/explainability/trade_off_plot.py` (post-S-15.5 strength-based form): overall MSE on the x-axis against the **faithfulness-gap mean** (across-k mean of `top_k_mse_increase − bottom_k_mse_increase` over k ∈ {1, 2, 3}) on the y-axis. This operationalises interpretability along the fidelity axis only (Yeh et al., 2019 distinguish fidelity from sensitivity); stability and human-rated usefulness lie outside the present scope. The criterion-dependence of the gap metric is carried into Discussion § 4.4.2.
+AOPC(model, seed) = mean over k ∈ {1, …, 7} of
+\[ (MSE(x where top-k vars occluded) − baseline_MSE) − (MSE(x where bot-k vars occluded) − baseline_MSE) \]
+
+where the top-k (bottom-k) set is the first (last) k variables in the per-(model, seed) occlusion ranking. Higher AOPC indicates stronger behavioural separation between the model's most- and least-important variables under perturbation — a more *faithful* ranking. At k = 7 both sets coincide and the gap collapses to zero; this degenerate tail is kept in the mean so that the AOPC is bounded above by a per-model maximum that depends on the baseline MSE rather than on the k-range choice. Outputs: `results/bachelor_safe_v2/faithfulness_aopc.csv` (16 rows: one per (model, seed)) and `faithfulness_aopc_per_k.csv` (112 rows: per-k diagnostic breakdown).
+
+AOPC was introduced in the v2 rerun of the closure plan following the observation that the v1 binary ``top > bottom`` decision rule produced a 12/12 pass under the three-seed protocol and a non-discriminative y-axis in the trade-off plot. AOPC replaces that binary rule as the primary RQ2 faithfulness measure. The definitions above were fixed in this methodology text before the v2 rerun was executed; the thesis does not claim formal pre-registration in the statistical sense — v1 results had been seen — but no AOPC output was produced under v1.
+
+### 2.9.4 Cross-model agreement (RQ2 rank-correlation anchor)
+
+A pairwise rank-correlation analysis on the **seed-averaged occlusion importance** vectors is computed by `src/explainability/cross_model_xai_agreement.py`, reporting Spearman ρ and Kendall τ over the seven ETTh1 variables for each of the six pairs (`results/bachelor_safe_v2/xai_agreement_occlusion.csv`). Because occlusion is the same measurement object for all four models, these correlations are primary RQ2 evidence. SHAP↔SHAP and SHAP↔VSN correlations remain available in `xai_agreement_shap_vsn.csv` when the auxiliary CSVs are present; they support the construct-validity discussion of § 4.4.2 but are not consulted for the primary cross-model claim.
+
+### 2.9.5 Two-dimensional interpretability operationalisation (trade-off plot)
+
+For RQ3 a trade-off scatter is produced by `src/explainability/trade_off_plot.py`: seed-averaged overall MSE on the x-axis against the seed-averaged AOPC on the y-axis, with error bars equal to the across-seed AOPC std (ddof = 1). A companion figure, `faithfulness_aopc_by_k.png`, decomposes the AOPC into per-k gaps and exposes the k-profile of each model. This operationalisation keeps interpretability along the fidelity axis only (Yeh et al., 2019 distinguish fidelity from sensitivity); stability and human-rated usefulness lie outside the present scope and are acknowledged in § 4.6 as future work.
 
 ## 2.10 Evaluation Procedure
 

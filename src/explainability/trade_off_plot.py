@@ -1,309 +1,232 @@
-"""Accuracy ↔ interpretability trade-off plot (S-10 strong-package addition; S-15.5 patch 2026-04-21).
+"""Accuracy ↔ interpretability trade-off plot (Closure Plan v6.1 B7b).
 
-Purpose
--------
-Quantifies and visualises the RQ3 trade-off claim by plotting overall MSE
-(predictive accuracy axis) against per-model **faithfulness gap** (strength-
-based explanation-quality axis) for the four core models.
+Visualises the RQ3 trade-off by plotting per-model overall MSE (predictive
+accuracy axis) against per-model AOPC (continuous faithfulness axis). AOPC
+replaces the v1 binary top-vs-bottom pass rate (flat y-axis) and the
+post-hoc ``gap_mean`` patch it superseded; both are retired by the v6.1
+plan (see methodology § 2.9.X for the transparency note).
 
-Why this artefact
------------------
-Under the binary decision rule used pre-S-15.5 (`top > bottom` per (model,k)
-without a minimum separation threshold), all four models scored 1.000 →
-y-axis collapsed → RQ3 trade-off not discriminable. S-15.5 replaces the
-binary pass rate with a continuous strength-based gap metric derived from
-the same `results/faithfulness.csv`; no upstream rerun of
-`faithfulness_test.py` is required.
-
-Faithfulness-gap metric definition (S-15.5 PRIMARY)
----------------------------------------------------
-For each (model, k) where k ∈ {1,2,3}, define
-    gap(model, k) = top_mse_increase(model, k) − bottom_mse_increase(model, k)
-Then
-    faithfulness_gap_mean(model) = mean over k of gap(model, k)
-measures how much more the top-k masked variables damage the model than the
-bottom-k masked variables on average. Higher = stronger behavioural
-separation between the top-ranked and bottom-ranked variables under this
-ranking. Values in `results/faithfulness.csv` are in scaled-MSE space;
-scale does not affect cross-model ordering.
-
-Column schema (written to `results/trade_off_data.csv`):
-    faithfulness_gap_mean   — PRIMARY metric (plot y-axis, prose anchor)
-    faithfulness_gap_std    — dispersion across k ∈ {1,2,3}
-                              (NOT a statistical uncertainty interval;
-                              n=3 by design; label as dispersion, not CI)
-    faithfulness_gap_min    — conservative lower bound, min over k of gap
-    faithfulness_pass_rate  — SECONDARY diagnostic (binary passes / total k)
-    faithfulness_score      — backward-compat alias = faithfulness_pass_rate
-                              (retained for existing docs/log references;
-                              candidate for removal at S-18)
-
-Construct-validity caveat (CLAUDE.md § 13)
+Role separation (Closure Plan v6.1 § 2 B7)
 ------------------------------------------
-SHAP (LR / MLP / LSTM) and VSN (TFT) are not equivalent measurement
-instruments. The faithfulness-gap metric is comparable across models
-because it measures behavioural consistency under perturbation of the
-model's own ranking, not the explanation's internal representation. The
-post-hoc-vs-architecture-native distinction is recorded in
-`docs/discussion.md` § 4.4.
+- **Occlusion** = the common explanation *instrument*
+  (``results/bachelor_safe_v2/occlusion_importance.csv``).
+- **AOPC** = the faithfulness *metric* computed over occlusion ranks
+  (``results/bachelor_safe_v2/faithfulness_aopc.csv``).
 
-Measurement-criterion dependence caveat (S-15.5)
-------------------------------------------------
-The underlying `faithfulness_test.py` masking rule is coarse: it compares
-a single-top-k masking vs a single-bottom-k masking at each k. A richer
-metric (continuous infidelity, ordered-masking curves) would strengthen
-RQ3 evidence; this remains future work per `docs/discussion.md` § 4.4.
-The gap-mean values reported here are empirically discriminating but
-criterion-bounded.
+This file consumes the metric only; it does not compute the instrument.
 
-Inputs (frozen artefacts produced upstream)
--------------------------------------------
-    results/per_seed_metrics.csv     — per-(model, seed) MSE on original scale
-                                       (or fall back to multi_seed_fair_baseline.csv + tft_summary.csv)
-    results/faithfulness.csv         — per-(model, k, mask_type) mse_increase
+Inputs
+------
+    results/bachelor_safe_v2/per_seed_metrics.csv       — accuracy axis (original-scale MSE)
+    results/bachelor_safe_v2/faithfulness_aopc.csv      — summary AOPC per (model, seed)
+    results/bachelor_safe_v2/faithfulness_aopc_per_k.csv — diagnostic per-k gaps
 
 Outputs
 -------
-    results/trade_off_data.csv          — per-model 5-column schema above
-    results/trade_off_plot.png          — 2D scatter, y-axis = faithfulness_gap_mean
-    results/faithfulness_gap_by_k.png   — per-model gap curves over k ∈ {1,2,3}
+    results/bachelor_safe_v2/trade_off_data.csv         — per-model 2D table
+    results/bachelor_safe_v2/trade_off_plot.png         — scatter
+    results/bachelor_safe_v2/faithfulness_aopc_by_k.png — per-model gap curves over k
 
 Run
 ---
-    python src/explainability/trade_off_plot.py
+    python src/explainability/trade_off_plot.py \\
+        --config configs/experiments/fair_core_v2.yaml
 """
 
-import os
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
-MODELS_ORDERED = ["LR", "MLP", "LSTM", "TFT"]
-MODEL_COLORS = {"LR": "tab:blue", "MLP": "tab:orange", "LSTM": "tab:green", "TFT": "tab:red"}
+from src.common import apply_runtime_overrides, ensure_dir, load_config
+
+MODELS_ORDERED = ("LR", "MLP", "LSTM", "TFT")
+MODEL_COLORS = {
+    "LR": "tab:blue",
+    "MLP": "tab:orange",
+    "LSTM": "tab:green",
+    "TFT": "tab:red",
+}
 
 
-# ============================================================
-# Accuracy axis: per-model overall MSE (original scale, seed-mean)
-# ============================================================
-def load_accuracy():
-    if os.path.exists("results/per_seed_metrics.csv"):
-        df = pd.read_csv("results/per_seed_metrics.csv")
-        agg = df.groupby("model")["mse_original"].mean().to_dict()
-        return {m: agg[m] for m in MODELS_ORDERED if m in agg}
-    out = {}
-    if os.path.exists("results/multi_seed_fair_baseline.csv"):
-        ms = pd.read_csv("results/multi_seed_fair_baseline.csv")
-        ms["model_short"] = ms["model"].replace({"Linear Regression": "LR"})
-        for m in ["LR", "MLP", "LSTM"]:
-            row = ms[ms["model_short"] == m]
-            if not row.empty:
-                out[m] = float(row["mse_original_mean"].iloc[0])
-    if os.path.exists("results/tft_summary.csv"):
-        tft = pd.read_csv("results/tft_summary.csv")
-        if "mse_original_mean" in tft.columns:
-            out["TFT"] = float(tft["mse_original_mean"].iloc[0])
-        elif "mse_original" in tft.columns:
-            out["TFT"] = float(tft["mse_original"].mean())
-    return out
+# ---------------------------------------------------------------------------
+# Axis loaders
+# ---------------------------------------------------------------------------
 
 
-# ============================================================
-# Interpretability axis: per-model faithfulness-gap summary (S-15.5 primary)
-# ============================================================
-def compute_per_k_gaps():
-    """Return {model: {k: gap}} from results/faithfulness.csv.
+def load_accuracy(results_path: Path) -> dict[str, float]:
+    per_seed = results_path / "per_seed_metrics.csv"
+    if not per_seed.exists():
+        raise FileNotFoundError(f"missing {per_seed} — run post_training_analysis.py first")
+    df = pd.read_csv(per_seed)
+    grouped = df.groupby("model")["mse_original"].mean().to_dict()
+    return {m: float(grouped[m]) for m in MODELS_ORDERED if m in grouped}
 
-    gap(model, k) = top_mse_increase(model, k) - bottom_mse_increase(model, k)
-    Expected to be > 0 under the current validated data (all 12/12 YES).
-    """
-    if not os.path.exists("results/faithfulness.csv"):
-        return {}
-    df = pd.read_csv("results/faithfulness.csv")
-    per_k = {}
-    for model, group in df.groupby("model"):
-        top = group[group["mask_type"] == "top"].set_index("k")["mse_increase"]
-        bot = group[group["mask_type"] == "bottom"].set_index("k")["mse_increase"]
-        common_k = sorted(set(top.index) & set(bot.index))
-        if not common_k:
+
+def load_aopc(results_path: Path) -> tuple[dict[str, tuple[float, float]], pd.DataFrame | None]:
+    """Return ({model: (aopc_mean, aopc_std_across_seeds)}, per_k_df-or-None)."""
+    aopc_csv = results_path / "faithfulness_aopc.csv"
+    if not aopc_csv.exists():
+        raise FileNotFoundError(f"missing {aopc_csv} — run faithfulness_test.py first")
+    df = pd.read_csv(aopc_csv)
+    out: dict[str, tuple[float, float]] = {}
+    for model in MODELS_ORDERED:
+        sub = df[df["model"] == model]
+        if sub.empty:
             continue
-        per_k[model] = {int(k): float(top[k] - bot[k]) for k in common_k}
-    return per_k
+        mean = float(sub["aopc"].mean())
+        std = float(sub["aopc"].std(ddof=1)) if len(sub) > 1 else 0.0
+        out[model] = (mean, std)
+
+    per_k_csv = results_path / "faithfulness_aopc_per_k.csv"
+    per_k_df = pd.read_csv(per_k_csv) if per_k_csv.exists() else None
+    return out, per_k_df
 
 
-def summarise_gaps(per_k):
-    """Return {model: {faithfulness_gap_mean, _std, _min, _pass_rate, _score}}.
-
-    Per S-15.5 plan v16 schema:
-        faithfulness_gap_mean  — PRIMARY continuous metric
-        faithfulness_gap_std   — dispersion across k ∈ {1,2,3} (NOT CI)
-        faithfulness_gap_min   — min over k; conservative lower bound
-        faithfulness_pass_rate — SECONDARY diagnostic (fraction with gap > 0)
-        faithfulness_score     — backward-compat alias = faithfulness_pass_rate
-    """
-    out = {}
-    for model, k_to_gap in per_k.items():
-        gaps = np.array(list(k_to_gap.values()), dtype=float)
-        if gaps.size == 0:
-            continue
-        passes = int(np.sum(gaps > 0))
-        pass_rate = passes / gaps.size
-        out[model] = {
-            "faithfulness_gap_mean": float(gaps.mean()),
-            "faithfulness_gap_std": float(gaps.std(ddof=1)) if gaps.size > 1 else 0.0,
-            "faithfulness_gap_min": float(gaps.min()),
-            "faithfulness_pass_rate": pass_rate,
-            "faithfulness_score": pass_rate,  # backward-compat alias
-        }
-    return out
+# ---------------------------------------------------------------------------
+# Plots
+# ---------------------------------------------------------------------------
 
 
-# ============================================================
-# Plot 1 — trade-off scatter (MSE × faithfulness_gap_mean)
-# ============================================================
-def plot_trade_off(data, out_png="results/trade_off_plot.png"):
-    fig, ax = plt.subplots(figsize=(7, 5))
+def plot_trade_off(data: pd.DataFrame, out_png: Path) -> Path:
+    fig, ax = plt.subplots(figsize=(7.2, 5.2))
     for _, row in data.iterrows():
         m = row["model"]
-        ax.scatter(row["mse"], row["faithfulness_gap_mean"],
-                   s=160, color=MODEL_COLORS.get(m, "gray"),
-                   edgecolor="black", linewidth=0.8, zorder=3, label=m)
-        pass_note = f"  (pass {int(round(row['faithfulness_pass_rate'] * 3))}/3)"
-        ax.annotate(m + pass_note, xy=(row["mse"], row["faithfulness_gap_mean"]),
-                    xytext=(8, 6), textcoords="offset points", fontsize=10)
+        ax.errorbar(
+            row["mse_mean"],
+            row["aopc_mean"],
+            yerr=row["aopc_std_across_seeds"],
+            fmt="o",
+            markersize=10,
+            color=MODEL_COLORS.get(m, "gray"),
+            ecolor="gray",
+            capsize=4,
+            elinewidth=1.2,
+            zorder=3,
+            label=m,
+        )
+        ax.annotate(
+            m,
+            xy=(row["mse_mean"], row["aopc_mean"]),
+            xytext=(8, 6),
+            textcoords="offset points",
+            fontsize=11,
+        )
     ax.set_xlabel("Overall MSE (original scale, seed-mean) — lower is more accurate")
-    ax.set_ylabel("Faithfulness gap — mean over k of (top-k − bottom-k) scaled-MSE increase")
-    ax.set_title("Accuracy ↔ interpretability trade-off (RQ3)")
+    ax.set_ylabel("AOPC — mean over k ∈ {1..7} of (top-k − bottom-k) scaled-MSE increase")
+    ax.set_title("Accuracy ↔ interpretability trade-off (RQ3; occlusion instrument)")
     ax.grid(True, alpha=0.3, zorder=0)
+    ax.axhline(0.0, color="black", linewidth=0.6, linestyle="--", alpha=0.4)
     ax.set_axisbelow(True)
     fig.tight_layout()
-    os.makedirs("results", exist_ok=True)
     fig.savefig(out_png, dpi=150)
     plt.close(fig)
     return out_png
 
 
-# ============================================================
-# Plot 2 — per-model gap curves over k (S-15.5 decomposition artefact)
-# ============================================================
-def plot_gap_by_k(per_k, out_png="results/faithfulness_gap_by_k.png"):
-    fig, ax = plt.subplots(figsize=(7, 5))
+def plot_aopc_by_k(per_k_df: pd.DataFrame, out_png: Path) -> Path:
+    fig, ax = plt.subplots(figsize=(7.2, 5.2))
     for model in MODELS_ORDERED:
-        if model not in per_k:
+        sub = per_k_df[per_k_df["model"] == model]
+        if sub.empty:
             continue
-        k_values = sorted(per_k[model].keys())
-        gaps = [per_k[model][k] for k in k_values]
-        ax.plot(k_values, gaps, marker="o", linewidth=2,
-                color=MODEL_COLORS.get(model, "gray"), label=model)
-    ax.set_xlabel("k (number of top / bottom variables masked)")
-    ax.set_ylabel("Faithfulness gap = top-k − bottom-k scaled-MSE increase")
-    ax.set_title("Per-model faithfulness gap decomposed over k (S-15.5)")
+        per_k_mean = sub.groupby("k")["gap"].mean().sort_index()
+        per_k_std = sub.groupby("k")["gap"].std(ddof=1).sort_index().fillna(0.0)
+        ax.errorbar(
+            per_k_mean.index.values,
+            per_k_mean.values,
+            yerr=per_k_std.values,
+            marker="o",
+            linewidth=1.8,
+            color=MODEL_COLORS.get(model, "gray"),
+            ecolor="gray",
+            capsize=3,
+            label=model,
+        )
+    ax.set_xlabel("k (number of top / bottom variables occluded)")
+    ax.set_ylabel("Gap = top-k − bottom-k scaled-MSE increase (seed-mean)")
+    ax.set_title("Per-model AOPC decomposition over k")
     ax.axhline(0.0, color="black", linewidth=0.6, linestyle="--", alpha=0.5)
-    ax.set_xticks([1, 2, 3])
     ax.grid(True, alpha=0.3, zorder=0)
-    ax.set_axisbelow(True)
     ax.legend(loc="best", fontsize=10)
     fig.tight_layout()
-    os.makedirs("results", exist_ok=True)
     fig.savefig(out_png, dpi=150)
     plt.close(fig)
     return out_png
 
 
-# ============================================================
-# Entry point
-# ============================================================
-if __name__ == "__main__":
-    print("=" * 70)
-    print("Trade-off plot — accuracy (MSE) × faithfulness gap (S-15.5 strength-based)")
-    print("=" * 70)
+# ---------------------------------------------------------------------------
+# Run
+# ---------------------------------------------------------------------------
 
-    print("\n[1/4] Loading accuracy axis (per-model overall MSE)...")
-    acc = load_accuracy()
-    for m, v in acc.items():
-        print(f"  {m:6s} MSE = {v:.4f}")
 
-    print("\n[2/4] Loading faithfulness axis (per-model strength-based gap)...")
-    per_k = compute_per_k_gaps()
-    faith = summarise_gaps(per_k)
-    for m in MODELS_ORDERED:
-        if m not in faith:
-            continue
-        s = faith[m]
-        print(f"  {m:6s} gap_mean = {s['faithfulness_gap_mean']:+.4f}   "
-              f"gap_min = {s['faithfulness_gap_min']:+.4f}   "
-              f"gap_std(across k) = {s['faithfulness_gap_std']:.4f}   "
-              f"pass_rate = {s['faithfulness_pass_rate']:.2f}")
-    if not faith:
-        print("  [warn] faithfulness.csv not found or empty — plot will be x-only")
+def run_trade_off(
+    config_path: str | None = None,
+    *,
+    results_dir: str | None = None,
+) -> pd.DataFrame:
+    cfg = apply_runtime_overrides(load_config(config_path), smoke=False, results_dir=results_dir)
+    results_path = ensure_dir(cfg["results_dir"])
+
+    print(f"[B7b-trade-off] results_dir={results_path}")
+    accuracy = load_accuracy(results_path)
+    aopc_by_model, per_k_df = load_aopc(results_path)
 
     rows = []
-    for m in MODELS_ORDERED:
-        if m not in acc:
+    for model in MODELS_ORDERED:
+        if model not in accuracy or model not in aopc_by_model:
             continue
-        row = {
-            "model": m,
-            "mse": acc[m],
-            "faithfulness_available": m in faith,
-        }
-        if m in faith:
-            row.update(faith[m])
-        else:
-            row.update({
-                "faithfulness_gap_mean": np.nan,
-                "faithfulness_gap_std": np.nan,
-                "faithfulness_gap_min": np.nan,
-                "faithfulness_pass_rate": np.nan,
-                "faithfulness_score": np.nan,
-            })
-        rows.append(row)
-
+        aopc_mean, aopc_std = aopc_by_model[model]
+        rows.append(
+            {
+                "model": model,
+                "mse_mean": round(accuracy[model], 6),
+                "aopc_mean": round(aopc_mean, 6),
+                "aopc_std_across_seeds": round(aopc_std, 6),
+            }
+        )
     data = pd.DataFrame(rows)
-    # Column order: identity, accuracy, primary gap metrics, secondary + alias, flag
-    col_order = [
-        "model", "mse",
-        "faithfulness_gap_mean", "faithfulness_gap_std", "faithfulness_gap_min",
-        "faithfulness_pass_rate", "faithfulness_score",
-        "faithfulness_available",
-    ]
-    data = data[[c for c in col_order if c in data.columns]]
-    os.makedirs("results", exist_ok=True)
-    data.to_csv("results/trade_off_data.csv", index=False)
-
-    print("\n[3/4] Per-model trade-off table (PRIMARY = faithfulness_gap_mean):")
+    data_csv = results_path / "trade_off_data.csv"
+    data.to_csv(data_csv, index=False)
+    print(f"  saved {data_csv} ({len(data)} rows)")
     print(data.to_string(index=False))
 
-    plottable = data.dropna(subset=["faithfulness_gap_mean"])
-    if plottable.empty:
-        print("\n[warn] No model has both axes populated; skipping plots.")
-    else:
-        out_png = plot_trade_off(plottable)
-        print(f"\nSaved scatter plot: {out_png}")
-        if per_k:
-            out_png2 = plot_gap_by_k(per_k)
-            print(f"Saved gap-by-k decomposition plot: {out_png2}")
-        if len(plottable) < len(MODELS_ORDERED):
-            missing = [m for m in MODELS_ORDERED if m not in plottable["model"].tolist()]
-            print(f"[note] Plots omit: {missing} (no faithfulness gap available).")
+    if data.empty:
+        print("[warn] no plottable rows — skipping figures.")
+        return data
 
-    print("\n[4/4] Reading guide (S-15.5 strength-based semantics):")
-    print("-" * 70)
-    print("  x = overall MSE (lower better; predictive accuracy, original scale)")
-    print("  y = faithfulness_gap_mean (higher better; mean over k={1,2,3} of")
-    print("      top-k − bottom-k scaled-MSE increase; stronger behavioural")
-    print("      separation under the model's own variable ranking)")
-    print("  Annotation '(pass N/3)' = secondary binary diagnostic (how many of")
-    print("      k ∈ {1,2,3} satisfied top > bottom).")
-    print("  `faithfulness_score` column is a backward-compat alias of")
-    print("      `faithfulness_pass_rate` (candidate for removal at S-18).")
-    print("  `faithfulness_gap_std` = dispersion across k, NOT a statistical CI.")
-    print("")
-    print("  Interpretation discipline (CLAUDE.md § 11C + memory rq2_prose_")
-    print("  calibration S-15 addendum): under the adopted gap metric, a")
-    print("  downward-sloping front would indicate a strong-form trade-off;")
-    print("  a dominant single point (low MSE AND high gap) would refute it;")
-    print("  non-monotonic scatter (observed here) indicates no strong-form")
-    print("  trade-off under the present setup. Criterion-dependence applies:")
-    print("  the coarse top-vs-bottom masking rule in faithfulness_test.py")
-    print("  limits RQ3 evidence strength; a richer metric is future work.")
-    print("-" * 70)
+    scatter_png = plot_trade_off(data, results_path / "trade_off_plot.png")
+    print(f"  saved {scatter_png}")
+    if per_k_df is not None and not per_k_df.empty:
+        by_k_png = plot_aopc_by_k(per_k_df, results_path / "faithfulness_aopc_by_k.png")
+        print(f"  saved {by_k_png}")
+
+    print("\n[read guide]")
+    print("  x-axis: per-model seed-averaged overall MSE (lower = more accurate).")
+    print("  y-axis: per-model seed-averaged AOPC (higher = more faithful).")
+    print("  Error bars on y = across-seed std (ddof=1). AOPC aggregates over")
+    print("  k ∈ {1..7} the gap (top_k − bot_k) scaled-MSE increase; higher =")
+    print("  stronger behavioural separation between the model's top-ranked and")
+    print("  bottom-ranked variables under occlusion of the common instrument.")
+    return data
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="B7b — accuracy × AOPC trade-off plot (RQ3)."
+    )
+    parser.add_argument("--config", default="configs/experiments/fair_core_v2.yaml")
+    parser.add_argument("--results-dir", default=None)
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    run_trade_off(args.config, results_dir=args.results_dir)
+
+
+if __name__ == "__main__":
+    main()
