@@ -260,7 +260,12 @@ def build_complexity_table(complexity_csv: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-_STATUS_RE = re.compile(r"(?:\*\*)?\b(VALIDATED|PENDING|PARTIAL|BLOCKED|SUPERSEDED|RECORDED)\b(?:\s*\([^)]+\))?(?:\*\*)?")
+_STATUS_RE = re.compile(
+    r"(?:\*\*)?"
+    r"\b(?P<word>VALIDATED|PENDING|PARTIAL|BLOCKED|SUPERSEDED|RECORDED)\b"
+    r"(?P<mod>\s*\([^)]+\))?"
+    r"(?:\*\*)?"
+)
 _SCRIPT_RE = re.compile(r"`([^`]+\.py)`")
 # VALIDATION_LOG uses plain (un-backticked) paths in the Scripts table; also accept those:
 _LOG_SCRIPT_RE = re.compile(r"(src/[a-zA-Z0-9_/]+\.py)")
@@ -295,7 +300,9 @@ def parse_validation_log(log_path: Path) -> dict[str, str]:
         m_status = _STATUS_RE.search(status_cell)
         if not m_status:
             continue
-        status = m_status.group(1)
+        word = m_status.group("word")
+        modifier = (m_status.group("mod") or "").strip()
+        status = f"{word} {modifier}".strip() if modifier else word
         # Keep the last (most recent) status for a given script path
         out[script_path] = status
     return out

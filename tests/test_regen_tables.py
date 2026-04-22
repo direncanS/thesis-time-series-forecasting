@@ -49,8 +49,13 @@ def test_parse_validation_log_finds_validated_scripts():
         "src/evaluation/post_training_analysis.py",
     ):
         assert expected in status_map, f"{expected} missing from VALIDATION_LOG parse"
-        assert status_map[expected] in {"VALIDATED", "PARTIAL", "PENDING"}, \
-            f"{expected} has unexpected status {status_map[expected]}"
+        raw_status = status_map[expected]
+        # Status may include a parenthesised qualifier such as
+        # "PENDING (v2 auditor pass)" or "VALIDATED (post-clip)" — compare
+        # on the leading status word only.
+        status_word = raw_status.split()[0] if raw_status else ""
+        assert status_word in {"VALIDATED", "PARTIAL", "PENDING"}, \
+            f"{expected} has unexpected status {raw_status}"
 
 
 def test_regen_runs_and_writes_fragments():
@@ -97,15 +102,29 @@ def test_regen_is_idempotent():
 
 
 def test_prose_has_no_stale_pending():
-    """After regen, grep 'PENDING' in solution.md + appendix.md should be 0.
+    """After regen, any 'PENDING' occurrence in solution.md + appendix.md
+    must be an explicit, qualified 'pending v2 auditor pass' reference —
+    never a bare 'PENDING' that would indicate stale v1 carry-over.
 
-    Static 'N/A (§ 11A item 9 exception)' and similar references are allowed
-    (hand-authored config tables). This test targets only dynamic PENDING.
+    Accepted qualifiers (B8 additions) are 'v2 auditor', 'user-invoked
+    auditor' or similar explicit notes. Pre-B8 tests expected zero
+    PENDINGs; post-B8 the auto-generated pipeline-status fragment legitimately
+    carries v2 PENDING rows until the user-invoked auditor pass updates them.
     """
     subprocess.run([sys.executable, str(SCRIPT)], check=True, cwd=str(REPO_ROOT))
+    stale_markers = ("PENDING",)
+    accepted_qualifiers = (
+        "pending v2 auditor",
+        "PENDING (v2",
+        "PENDING v2 audit",
+        "user-invoked auditor",
+    )
     for md in (SOLUTION_MD, APPENDIX_MD):
         text = md.read_text(encoding="utf-8")
-        # Count PENDING occurrences (case-sensitive)
-        pending_count = text.count("PENDING")
-        assert pending_count == 0, \
-            f"{md.name} contains {pending_count} 'PENDING' reference(s) after regen"
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            if not any(m in line for m in stale_markers):
+                continue
+            # "PENDING" is present — verify the line is explicitly v2-qualified
+            assert any(q in line for q in accepted_qualifiers), (
+                f"{md.name}:{line_no} contains bare 'PENDING' without a v2-auditor qualifier: {line!r}"
+            )

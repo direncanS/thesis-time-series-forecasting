@@ -121,19 +121,19 @@ src/
 <!-- @begin-include _generated/pipeline_status_table.md -->
 | Conceptual component | File(s) | Status | Output artefact(s) |
 |----------------------|---------|--------|---------------------|
-| Data processing | `src/training/multi_seed.py`; `src/training/tft_fair_3seed.py` | **VALIDATED** | scaled tensors in memory |
-| LR training path | `src/training/multi_seed.py` (LR pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LR row) |
-| MLP training path | `src/training/multi_seed.py` (MLP pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (MLP rows); `checkpoints/mlp_seed*.pt` |
-| LSTM training path | `src/training/multi_seed.py` (LSTM pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed*.pt` |
-| TFT training path | `src/training/tft_fair_3seed.py` | **VALIDATED** | `results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed*.ckpt` |
-| Prediction export | `src/evaluation/export_predictions.py` | **VALIDATED** | `results/preds_*.npy` (shape `(n_test, 24, 7)`) |
-| Post-training analysis (per-seed + complexity + bootstrap) | `src/evaluation/post_training_analysis.py` | **VALIDATED** | `results/per_seed_metrics.csv`; `results/complexity_metrics.csv`; `results/bootstrap_intervals.csv` + `bootstrap_block_sensitivity.csv` |
+| Data processing | `src/training/multi_seed.py`; `src/training/tft_fair_3seed.py` | **PENDING (v2 auditor pass)** | scaled tensors in memory |
+| LR training path | `src/training/multi_seed.py` (LR pathway) | **PENDING (v2 auditor pass)** | `results/multi_seed_fair_baseline.csv` (LR row) |
+| MLP training path | `src/training/multi_seed.py` (MLP pathway) | **PENDING (v2 auditor pass)** | `results/multi_seed_fair_baseline.csv` (MLP rows); `checkpoints/mlp_seed*.pt` |
+| LSTM training path | `src/training/multi_seed.py` (LSTM pathway) | **PENDING (v2 auditor pass)** | `results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed*.pt` |
+| TFT training path | `src/training/tft_fair_3seed.py` | **PENDING (v2 auditor pass)** | `results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed*.ckpt` |
+| Prediction export | `src/evaluation/export_predictions.py` | **PENDING (v2 auditor pass)** | `results/preds_*.npy` (shape `(n_test, 24, 7)`) |
+| Post-training analysis (per-seed + complexity + bootstrap) | `src/evaluation/post_training_analysis.py` | **PENDING (v2 auditor pass)** | `results/per_seed_metrics.csv`; `results/complexity_metrics.csv`; `results/bootstrap_intervals.csv` + `bootstrap_block_sensitivity.csv` |
 | Explainability — SHAP | `src/explainability/shap_lr.py`; `src/explainability/shap_mlp.py`; `src/explainability/shap_lstm.py` | **VALIDATED** | `results/shap_{lr,mlp,lstm}.csv` |
-| Explainability — VSN | `src/training/tft_fair_3seed.py` (TFT VSN extraction) | **VALIDATED** | `results/tft_importance.csv` |
-| Faithfulness layer | `src/explainability/faithfulness_test.py` | **VALIDATED** | `results/faithfulness.csv` |
-| Cross-model XAI agreement | `src/explainability/cross_model_xai_agreement.py` | **VALIDATED** | `results/xai_agreement.csv` |
-| Accuracy ↔ interpretability trade-off plot | `src/explainability/trade_off_plot.py` | **VALIDATED** | `results/trade_off_data.csv`; `results/trade_off_plot.png` |
-| Per-horizon disaggregated metrics | `src/evaluation/per_horizon_metrics.py` | **VALIDATED** | `results/per_horizon_metrics.csv` |
+| Explainability — VSN | `src/training/tft_fair_3seed.py` (TFT VSN extraction) | **PENDING (v2 auditor pass)** | `results/tft_importance.csv` |
+| Faithfulness layer | `src/explainability/faithfulness_test.py` | **PENDING (v2 auditor pass)** | `results/faithfulness.csv` |
+| Cross-model XAI agreement | `src/explainability/cross_model_xai_agreement.py` | **PENDING (v2 auditor pass)** | `results/xai_agreement.csv` |
+| Accuracy ↔ interpretability trade-off plot | `src/explainability/trade_off_plot.py` | **PENDING (v2 auditor pass)** | `results/trade_off_data.csv`; `results/trade_off_plot.png` |
+| Per-horizon disaggregated metrics | `src/evaluation/per_horizon_metrics.py` | **PENDING (v2 auditor pass)** | `results/per_horizon_metrics.csv` |
 <!-- @end-include -->
 
 ## D. Configuration Files
@@ -234,7 +234,7 @@ All 18 intervals exclude zero, so the corresponding mean per-window error differ
 The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the five-seed training pipeline's seed-variance signal (§ 2.9 methodology).
 
 <!-- @begin-include _generated/status_summary.md -->
-Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
+Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). Training + post-training layers status: see `docs/VALIDATION_LOG.md`. SHAP scripts are **VALIDATED**; `faithfulness_test.py` is currently **PENDING (v2 auditor pass)**.
 <!-- @end-include -->
 
 ## H. Implementation Notes
