@@ -21,7 +21,7 @@ The pipeline is composed of seven conceptual components arranged in a linear dat
 3. **Best-checkpoint restoration** — early-stopping on validation loss with patience 10 and restore-best-weights logic identical across stochastic models.
 4. **Prediction export** — frozen, original-scale per-test-window prediction tensors of shape `(3 365, 24, 7)` per model and per seed, written to disk as the canonical handoff to all downstream layers.
 5. **Original-scale evaluation** — MSE / MAE / RMSE computed on the inverse-transformed prediction tensors with seed-level aggregation.
-6. **Uncertainty layer** — paired bootstrap on aligned test-window prediction-error differences for the six pairwise comparisons.
+6. **Uncertainty layer** — paired **moving-block** bootstrap on aligned test-window prediction-error differences for the six pairwise comparisons.
 7. **Complexity layer** — primary metric (parameter count) plus secondary contextual metrics (architectural category, wall-clock training-time best-effort, hardware note).
 
 The explainability workflow (§ 3.6) operates as a parallel branch off the prediction-export component and consumes the same checkpoints used by the evaluation branch.
@@ -52,13 +52,13 @@ The training component runs each model under its locked hyperparameter defaults 
 
 **TFT path.** The TFT training path is structurally analogous but uses Lightning's `ModelCheckpoint(monitor="val_loss", mode="min", save_top_k=1)` together with `EarlyStopping(monitor="val_loss", patience=10)`; the best checkpoint is restored via `load_from_checkpoint(best_path)` before test-time prediction. The training loss is a custom MSE class that subclasses `MultiHorizonMetric` with `reduction="mean"`; this is symmetric with `nn.MSELoss()` in element-wise gradient behaviour. The earlier MAE-loss TFT variant was superseded by the present configuration after a loss-symmetry-fix cycle (LOSS-SYMMETRY-01) that resolved the prior cross-model training-objective asymmetry.
 
-For each stochastic model, the training loop is repeated for three seeds (42, 123, 456) using `torch.manual_seed`; the resulting per-seed checkpoints are persisted to `checkpoints/`.
+For each stochastic model, the training loop is repeated for five seeds (42, 123, 456, 789, 1024) using `torch.manual_seed`; the resulting per-seed checkpoints are persisted to `checkpoints/bachelor_safe_v2/`.
 
 ## 3.5 Evaluation Component
 
 The evaluation component closes the loop on the original scale. For every (model, seed) combination, the best checkpoint is restored, predictions for the 3 365 test windows are produced in a single forward pass (or, for LR, a single matrix multiplication), and the inverse-transform step reverses the train-fit `StandardScaler` to return values to the original units of each variable.
 
-Three point metrics are computed per (model, seed): **MSE**, **MAE**, and **RMSE**. Each is the `np.mean` of the per-element error tensor of shape (3 365, 24, 7). Per the four-axis aggregation contract (§ 2.10.1), this scalar mean averages simultaneously across the forecast horizon, across the seven variables, and across the test windows. The seed axis is summarised separately: for each metric, the per-seed scalars are reported as **mean ± std with `ddof = 1`** over seeds {42, 123, 456}; for the deterministic LR path the seed axis is not applicable.
+Three point metrics are computed per (model, seed): **MSE**, **MAE**, and **RMSE**. Each is the `np.mean` of the per-element error tensor of shape (3 365, 24, 7). Per the four-axis aggregation contract (§ 2.10.1), this scalar mean averages simultaneously across the forecast horizon, across the seven variables, and across the test windows. The seed axis is summarised separately: for each metric, the per-seed scalars are reported as **mean ± std with `ddof = 1`** over seeds {42, 123, 456, 789, 1024}; for the deterministic LR path the seed axis is not applicable.
 
 The component writes a single output table (`results/multi_seed_fair_baseline.csv` for LR / MLP / LSTM, `results/tft_summary.csv` for TFT) and a per-epoch training-curves CSV that retains the validation-loss trajectory for each (model, seed) pair. These artefacts are then consumed by the uncertainty and complexity layers below.
 
@@ -96,7 +96,7 @@ This section reports the **observed overall performance** of the four core model
 
 ### 3.8.1 Overall point metrics (original scale)
 
-The per-seed mean and standard deviation of each metric over seeds {42, 123, 456} are reported below; LR is deterministic.
+The per-seed mean and standard deviation of each metric over seeds {42, 123, 456, 789, 1024} are reported below; LR is deterministic.
 
 <!-- @begin-include _generated/overall_metrics_table.md -->
 | Model | Parameter count | MSE (mean ± std) | MAE (mean ± std) | RMSE (mean ± std) | Best epochs (per seed) |
@@ -109,7 +109,7 @@ The per-seed mean and standard deviation of each metric over seeds {42, 123, 456
 
 ### 3.8.2 Pairwise uncertainty intervals
 
-Paired-bootstrap 95 % confidence intervals on the mean per-window error difference for each of the six model pairs were computed with `BOOTSTRAP_SEED = 2026` and `N = 10 000` resamples (`results/bootstrap_intervals.csv`); the safety sentence of § 16 applies — *Interval estimates are used as comparative uncertainty evidence, not as a claim of strict independent-sample inference.* Sliding-window overlap on ETTh1 violates the strict independence assumption underlying the standard bootstrap, and the intervals carry that residual dependence risk.
+Paired **moving-block** bootstrap 95 % confidence intervals on the mean per-window error difference for each of the six model pairs were computed with `BOOTSTRAP_SEED = 2026`, `N = 10 000` resamples, and block length **L = 96** (`results/bachelor_safe_v2/bootstrap_intervals.csv`). Block length L = 96 coincides with `INPUT_LEN` and follows the optimal-block-length heuristic of Politis & White (2004); Appendix § F.2 reports CI widths at L ∈ {24, 48, 96, 192}. The moving-block variant preserves within-block serial dependence, method-matching the uncertainty layer to the overlapping-sliding-window structure of ETTh1 rather than silently assuming away the independence violation. The safety sentence of § 16 applies — *Interval estimates are used as comparative uncertainty evidence, not as a claim of strict independent-sample inference.*
 
 For the MSE metric, the six pairwise intervals are:
 
@@ -126,7 +126,7 @@ For the MSE metric, the six pairwise intervals are:
 
 ### 3.8.3 Complexity context
 
-Three operationalisations of "complexity" are reported (§ 14, `results/complexity_metrics.csv`): parameter count (primary), wall-clock training time (secondary, with hardware note), and architectural category. Parameter counts appear in the table of § 3.8.1; the architectural-category ordering is **linear (LR) < shallow-MLP (MLP) < recurrent (LSTM) < transformer-family (TFT)**; wall-clock training time is dominated by TFT (best-effort estimate ≈ 915 s across the three seeds on a single NVIDIA RTX 5080 Laptop GPU with batch size 64), with LR completing in under one second by closed-form solver; MLP and LSTM wall-clock seconds were not instrumented in the training script and are acknowledged as a § 14 secondary-metric reporting gap.
+Three operationalisations of "complexity" are reported (§ 14, `results/bachelor_safe_v2/complexity_metrics.csv`): parameter count (primary), wall-clock training time (secondary, with hardware note), and architectural category. Parameter counts appear in the table of § 3.8.1; the architectural-category ordering is **linear (LR) < shallow-MLP (MLP) < recurrent (LSTM) < transformer-family (TFT)**. Wall-clock training time (fair-core v2 rerun, 2026-04-22) totals across the five seeds on a single NVIDIA RTX 5080 Laptop GPU with batch size 64: LR **0.7 s** (closed-form), MLP **28 s**, LSTM **45 s**, TFT **2 373 s (≈ 39.5 min)** — TFT dominates by two orders of magnitude.
 
 The three orderings are mutually orthogonal: parameter-count ordering is **MLP > LR > LSTM > TFT**, architectural-category ordering is **LR < MLP < LSTM < TFT**, and accuracy ordering (lower error first) is **LR > MLP > LSTM > TFT**. None of the three coincide. This three-way orthogonality is taken up in § 4.1 and § 4.3 as a material framing point for RQ1 and RQ3.
 

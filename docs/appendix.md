@@ -35,7 +35,7 @@ The values below are the locked implementation defaults of § 10. They are repro
 | Weight decay | 0.0 |
 | Validation monitor | val_loss (MSE on validation windows) |
 | Checkpoint rule | Restore-best-weights via `load_state_dict` |
-| Seeds | 42, 123, 456 |
+| Seeds | 42, 123, 456, 789, 1024 |
 
 ### A.3 LSTM
 
@@ -51,7 +51,7 @@ The values below are the locked implementation defaults of § 10. They are repro
 | Weight decay | 0.0 |
 | Validation monitor | val_loss (MSE) |
 | Checkpoint rule | Restore-best-weights via `load_state_dict` |
-| Seeds | 42, 123, 456 |
+| Seeds | 42, 123, 456, 789, 1024 |
 
 ### A.4 TFT
 
@@ -74,7 +74,7 @@ The values below are the locked implementation defaults of § 10. They are repro
 | Output | Deterministic point forecast (no quantile / probabilistic head) |
 | Validation monitor | val_loss (sum of per-target MSE) |
 | Checkpoint rule | Lightning `ModelCheckpoint(monitor="val_loss", mode="min", save_top_k=1)` + `load_from_checkpoint(best_path)` |
-| Seeds | 42, 123, 456 |
+| Seeds | 42, 123, 456, 789, 1024 |
 
 ### A.5 Pipeline-level constants
 
@@ -187,9 +187,9 @@ The headline § 3.8.1 table reports mean ± std across seeds. The per-seed value
 | TFT   | 1024 | 26.500271 |  2.938889 |  5.147841 | 1 |
 <!-- @end-include -->
 
-### F.2 Pairwise paired-bootstrap intervals — full set
+### F.2 Pairwise paired moving-block bootstrap intervals — full set
 
-The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table (six pairs × three metrics) from `results/bootstrap_intervals.csv` is reproduced below.
+The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table (six pairs × three metrics) from `results/bachelor_safe_v2/bootstrap_intervals.csv` is reproduced below. All intervals are computed with `arch.bootstrap.MovingBlockBootstrap` at block length **L = 96** (= `INPUT_LEN`), `BOOTSTRAP_SEED = 2026`, and `N = 10 000` resamples.
 
 <!-- @begin-include _generated/bootstrap_full.md -->
 | Pair (A vs B) | Metric | Mean diff (A − B) | 95 % CI low | 95 % CI high | Bootstrap N | Bootstrap seed | Block length | n_test_windows |
@@ -214,6 +214,10 @@ The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table
 | LSTM vs TFT | RMSE | -0.205475 | -0.264532 | -0.131254 | 10 000 | 2026 | 96 | 3 365 |
 <!-- @end-include -->
 
+All 18 intervals exclude zero, so the corresponding mean per-window error differences remain distinguishable at the moving-block bootstrap-CI level with block length L = 96 under the present configuration. The § 16 safety sentence continues to apply; the overlapping-sliding-window dependence is method-matched by the block variant rather than silently assumed away.
+
+**Block length sensitivity.** Table `results/bachelor_safe_v2/bootstrap_block_sensitivity.csv` reports the 95 % CI widths at L ∈ {24, 48, 96, 192} for each (pair × metric) combination. Widths remain stable across block lengths (variation well within 10 % of the headline widths), confirming that L = 96 is not a knife-edge choice; the headline moving-block intervals are robust to reasonable L perturbations.
+
 ### F.3 Complexity metrics — full table
 
 <!-- @begin-include _generated/complexity_table.md -->
@@ -227,7 +231,7 @@ The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table
 
 ## G. Extra SHAP / VSN Plots
 
-The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the 3-seed training pipeline's seed-variance signal (§ 2.9 methodology).
+The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the five-seed training pipeline's seed-variance signal (§ 2.9 methodology).
 
 <!-- @begin-include _generated/status_summary.md -->
 Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
