@@ -75,7 +75,7 @@ For TFT, the component reads the architecture-native **Variable Selection Networ
 A faithfulness layer (`src/explainability/faithfulness_test.py`) reports AOPC — Area Over Perturbation Curve, Samek et al. (2017) — over the occlusion ranks produced by the common XAI instrument (§ 4.2). A dedicated input-perturbation stability layer was prototyped but was dropped on 2026-04-20 (S-11 archive migration; `stability_test.py` retrained models under lr=0.001 + 50-epoch + single-seed, inconsistent with § 10 locked defaults); explanation-stability in the present thesis is therefore restricted to the seed-CV evidence already produced by the training pipeline (§ 3.4).
 
 <!-- @begin-include _generated/status_summary.md -->
-Tables and figures in this section are auto-generated from v1 baseline artefacts (pre-B5 rerun; source: `archive/pre-v2-2026-04-22/results/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
+Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
 <!-- @end-include -->
 
 ## 3.7 Reproducibility Verification Component
@@ -102,9 +102,9 @@ The per-seed mean and standard deviation of each metric over seeds {42, 123, 456
 | Model | Parameter count | MSE (mean ± std) | MAE (mean ± std) | RMSE (mean ± std) | Best epochs (per seed) |
 |-------|-----------------|-------------------|-------------------|---------------------|--------------------------|
 | LR    | 113 064      | 7.66 | 1.47 | 2.77 | — (closed-form) |
-| MLP   | 124 328      | 9.36 ± 0.05 | 1.79 ± 0.02 | 3.06 ± 0.01 | 13 / 24 / 21 |
-| LSTM  |  29 608      | 12.71 ± 0.33 | 2.16 ± 0.03 | 3.56 ± 0.05 | 24 / 37 / 39 |
-| TFT   |  18 261      | 14.19 ± 0.68 | 2.32 ± 0.07 | 3.77 ± 0.09 | 5 / 14 / 9 |
+| MLP   | 124 328      | 9.47 ± 0.12 | 1.81 ± 0.01 | 3.08 ± 0.02 | 13 / 24 / 11 / 23 / 20 |
+| LSTM  |  29 608      | 12.92 ± 0.43 | 2.14 ± 0.06 | 3.59 ± 0.06 | 25 / 28 / 36 / 24 / 20 |
+| TFT   |  18 261      | 16.34 ± 5.74 | 2.42 ± 0.29 | 4.00 ± 0.65 | 5 / 14 / 9 / 34 / 1 |
 <!-- @end-include -->
 
 ### 3.8.2 Pairwise uncertainty intervals
@@ -116,12 +116,12 @@ For the MSE metric, the six pairwise intervals are:
 <!-- @begin-include _generated/bootstrap_headline.md -->
 | Pair (A vs B) | Mean diff (A − B) | 95 % CI         |
 |---------------|--------------------|-----------------|
-| LR vs MLP     |   -1.31            | [ -1.40,  -1.22] |
-| LR vs LSTM    |   -4.40            | [ -4.57,  -4.23] |
-| LR vs TFT     |   -5.14            | [ -5.31,  -4.96] |
-| MLP vs LSTM   |   -3.10            | [ -3.29,  -2.91] |
-| MLP vs TFT    |   -3.84            | [ -4.01,  -3.66] |
-| LSTM vs TFT   |   -0.74            | [ -0.88,  -0.60] |
+| LR vs MLP     |   -1.27            | [ -1.58,  -0.88] |
+| LR vs LSTM    |   -4.41            | [ -5.32,  -3.41] |
+| LR vs TFT     |   -5.79            | [ -6.74,  -4.61] |
+| MLP vs LSTM   |   -3.14            | [ -4.20,  -2.09] |
+| MLP vs TFT    |   -4.52            | [ -5.59,  -3.32] |
+| LSTM vs TFT   |   -1.38            | [ -1.73,  -0.89] |
 <!-- @end-include -->
 
 ### 3.8.3 Complexity context
@@ -135,5 +135,5 @@ The three orderings are mutually orthogonal: parameter-count ordering is **MLP >
 The per-feature SHAP attribution profiles for LR / MLP / LSTM and the VSN importance vector for TFT are written to `results/shap_<model>.csv` and `results/tft_importance.csv` respectively. Under the v6.1 plan the primary cross-model explanation instrument is the model-agnostic occlusion importance produced by `src/explainability/common_importance.py` (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. A dedicated stability layer was dropped in the S-11 archive migration (see § 3.6 above); explanation-stability is covered only by the seed-CV evidence from the training pipeline, and the present section makes no standalone stability claim.
 
 <!-- @begin-include _generated/status_summary.md -->
-Tables and figures in this section are auto-generated from v1 baseline artefacts (pre-B5 rerun; source: `archive/pre-v2-2026-04-22/results/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
+Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
 <!-- @end-include -->

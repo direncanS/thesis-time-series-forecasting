@@ -170,15 +170,21 @@ The headline § 3.8.1 table reports mean ± std across seeds. The per-seed value
 | Model | Seed | MSE       | MAE       | RMSE      | Best epoch |
 |-------|------|-----------|-----------|-----------|------------|
 | LR    | —    |  7.660473 |  1.465105 |  2.767756 | — (closed-form) |
-| MLP   | 42   |  9.387691 |  1.815717 |  3.063934 | 13 |
-| MLP   | 123  |  9.297266 |  1.775142 |  3.049142 | 24 |
-| MLP   | 456  |  9.387301 |  1.793160 |  3.063870 | 21 |
-| LSTM  | 42   | 12.909149 |  2.184976 |  3.592930 | 24 |
-| LSTM  | 123  | 12.890569 |  2.177428 |  3.590344 | 37 |
-| LSTM  | 456  | 12.325866 |  2.131152 |  3.510821 | 39 |
-| TFT   | 42   | 13.842928 |  2.353392 |  3.720609 | 5 |
-| TFT   | 123  | 14.973859 |  2.365295 |  3.869607 | 14 |
-| TFT   | 456  | 13.742417 |  2.246436 |  3.707077 | 9 |
+| MLP   | 42   |  9.607342 |  1.810953 |  3.099571 | 13 |
+| MLP   | 123  |  9.378154 |  1.820981 |  3.062377 | 24 |
+| MLP   | 456  |  9.570781 |  1.807955 |  3.093668 | 11 |
+| MLP   | 789  |  9.444790 |  1.807262 |  3.073238 | 23 |
+| MLP   | 1024 |  9.336527 |  1.794262 |  3.055573 | 20 |
+| LSTM  | 42   | 12.795810 |  2.092083 |  3.577123 | 25 |
+| LSTM  | 123  | 12.807588 |  2.171723 |  3.578769 | 28 |
+| LSTM  | 456  | 13.574508 |  2.205135 |  3.684360 | 36 |
+| LSTM  | 789  | 13.020063 |  2.184277 |  3.608332 | 24 |
+| LSTM  | 1024 | 12.390662 |  2.064890 |  3.520037 | 20 |
+| TFT   | 42   | 13.843709 |  2.353622 |  3.720714 | 5 |
+| TFT   | 123  | 14.990285 |  2.366630 |  3.871729 | 14 |
+| TFT   | 456  | 13.744812 |  2.247099 |  3.707400 | 9 |
+| TFT   | 789  | 12.625386 |  2.217307 |  3.553222 | 34 |
+| TFT   | 1024 | 26.500271 |  2.938889 |  5.147841 | 1 |
 <!-- @end-include -->
 
 ### F.2 Pairwise paired-bootstrap intervals — full set
@@ -186,26 +192,26 @@ The headline § 3.8.1 table reports mean ± std across seeds. The per-seed value
 The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table (six pairs × three metrics) from `results/bootstrap_intervals.csv` is reproduced below.
 
 <!-- @begin-include _generated/bootstrap_full.md -->
-| Pair (A vs B) | Metric | Mean diff (A − B) | 95 % CI low | 95 % CI high | Bootstrap N | Bootstrap seed | n_test_windows |
-|---------------|--------|--------------------|--------------|---------------|--------------|------------------|-------------------|
-| LR vs MLP | MSE | -1.305708 | -1.395497 | -1.217299 | 10 000 | 2026 | 3 365 |
-| LR vs MLP | MAE | -0.268324 | -0.277614 | -0.258870 | 10 000 | 2026 | 3 365 |
-| LR vs MLP | RMSE | -0.226588 | -0.241979 | -0.211364 | 10 000 | 2026 | 3 365 |
-| LR vs LSTM | MSE | -4.402469 | -4.572591 | -4.231742 | 10 000 | 2026 | 3 365 |
-| LR vs LSTM | MAE | -0.633870 | -0.648469 | -0.619642 | 10 000 | 2026 | 3 365 |
-| LR vs LSTM | RMSE | -0.705385 | -0.732925 | -0.678171 | 10 000 | 2026 | 3 365 |
-| LR vs TFT | MSE | -5.141411 | -5.314982 | -4.963153 | 10 000 | 2026 | 3 365 |
-| LR vs TFT | MAE | -0.765015 | -0.779915 | -0.749710 | 10 000 | 2026 | 3 365 |
-| LR vs TFT | RMSE | -0.810168 | -0.836420 | -0.783357 | 10 000 | 2026 | 3 365 |
-| MLP vs LSTM | MSE | -3.096761 | -3.286600 | -2.908016 | 10 000 | 2026 | 3 365 |
-| MLP vs LSTM | MAE | -0.365546 | -0.380396 | -0.350956 | 10 000 | 2026 | 3 365 |
-| MLP vs LSTM | RMSE | -0.478797 | -0.508310 | -0.449769 | 10 000 | 2026 | 3 365 |
-| MLP vs TFT | MSE | -3.835703 | -4.012775 | -3.659435 | 10 000 | 2026 | 3 365 |
-| MLP vs TFT | MAE | -0.496691 | -0.509346 | -0.483868 | 10 000 | 2026 | 3 365 |
-| MLP vs TFT | RMSE | -0.583579 | -0.609743 | -0.557521 | 10 000 | 2026 | 3 365 |
-| LSTM vs TFT | MSE | -0.738942 | -0.880090 | -0.600761 | 10 000 | 2026 | 3 365 |
-| LSTM vs TFT | MAE | -0.131144 | -0.143333 | -0.119249 | 10 000 | 2026 | 3 365 |
-| LSTM vs TFT | RMSE | -0.104783 | -0.124339 | -0.085259 | 10 000 | 2026 | 3 365 |
+| Pair (A vs B) | Metric | Mean diff (A − B) | 95 % CI low | 95 % CI high | Bootstrap N | Bootstrap seed | Block length | n_test_windows |
+|---------------|--------|--------------------|--------------|---------------|--------------|------------------|---------------|-------------------|
+| LR vs MLP | MSE | -1.270611 | -1.583030 | -0.880680 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs MLP | MAE | -0.260448 | -0.301583 | -0.206169 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs MLP | RMSE | -0.248450 | -0.298103 | -0.177971 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs LSTM | MSE | -4.413084 | -5.318296 | -3.410152 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs LSTM | MAE | -0.586847 | -0.658561 | -0.497758 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs LSTM | RMSE | -0.739074 | -0.871760 | -0.575593 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs TFT | MSE | -5.791200 | -6.741966 | -4.612476 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs TFT | MAE | -0.799158 | -0.873996 | -0.687095 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs TFT | RMSE | -0.944549 | -1.071772 | -0.767360 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs LSTM | MSE | -3.142473 | -4.199145 | -2.094700 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs LSTM | MAE | -0.326398 | -0.413099 | -0.238654 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs LSTM | RMSE | -0.490624 | -0.649368 | -0.324561 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs TFT | MSE | -4.520589 | -5.594069 | -3.324719 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs TFT | MAE | -0.538710 | -0.617334 | -0.442398 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs TFT | RMSE | -0.696099 | -0.841591 | -0.525371 | 10 000 | 2026 | 96 | 3 365 |
+| LSTM vs TFT | MSE | -1.378116 | -1.730803 | -0.885637 | 10 000 | 2026 | 96 | 3 365 |
+| LSTM vs TFT | MAE | -0.212311 | -0.256155 | -0.153113 | 10 000 | 2026 | 96 | 3 365 |
+| LSTM vs TFT | RMSE | -0.205475 | -0.264532 | -0.131254 | 10 000 | 2026 | 96 | 3 365 |
 <!-- @end-include -->
 
 ### F.3 Complexity metrics — full table
@@ -213,10 +219,10 @@ The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table
 <!-- @begin-include _generated/complexity_table.md -->
 | Model | n_params | Architectural category | Wall-clock seconds | Hardware note |
 |-------|----------|------------------------|---------------------|----------------|
-| LR    | 113 064 | linear                 | < 1 s               | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
-| MLP   | 124 328 | shallow-MLP            |                     | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
-| LSTM  |  29 608 | recurrent              |                     | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
-| TFT   |  18 261 | transformer-family     |                     | single NVIDIA RTX 5080 Laptop GPU (CUDA), batch_size = 64 |
+| LR    | 113 064 | linear                 | 0.7 s               | single local machine run; bachelor-safe local-only workflow |
+| MLP   | 124 328 | shallow-MLP            | 28.2 s              | single local machine run; bachelor-safe local-only workflow |
+| LSTM  |  29 608 | recurrent              | 44.9 s              | single local machine run; bachelor-safe local-only workflow |
+| TFT   |  18 261 | transformer-family     | 2373.4 s            | single local machine run; bachelor-safe local-only workflow |
 <!-- @end-include -->
 
 ## G. Extra SHAP / VSN Plots
@@ -224,7 +230,7 @@ The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table
 The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the 3-seed training pipeline's seed-variance signal (§ 2.9 methodology).
 
 <!-- @begin-include _generated/status_summary.md -->
-Tables and figures in this section are auto-generated from v1 baseline artefacts (pre-B5 rerun; source: `archive/pre-v2-2026-04-22/results/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
+Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED** in `docs/VALIDATION_LOG.md`. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
 <!-- @end-include -->
 
 ## H. Implementation Notes

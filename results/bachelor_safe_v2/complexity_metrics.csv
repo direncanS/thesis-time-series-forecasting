@@ -1,0 +1,5 @@
+model,n_params,architectural_category,wall_clock_seconds,hardware_note
+LR,113064,linear,0.679447,single local machine run; bachelor-safe local-only workflow
+MLP,124328,shallow-MLP,28.16267,single local machine run; bachelor-safe local-only workflow
+LSTM,29608,recurrent,44.90504,single local machine run; bachelor-safe local-only workflow
+TFT,18261,transformer-family,2373.392523,single local machine run; bachelor-safe local-only workflow

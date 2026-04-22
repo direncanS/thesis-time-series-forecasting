@@ -1,0 +1,2 @@
+model,seeds,deterministic,best_epochs,batch_size,learning_rate,patience,max_epochs,weight_decay,n_params,mse_scaled_mean,mse_scaled_std,mae_scaled_mean,mae_scaled_std,rmse_scaled_mean,rmse_scaled_std,mse_original_mean,mse_original_std,mae_original_mean,mae_original_std,rmse_original_mean,rmse_original_std
+TFT,"42,123,456,789,1024",False,"5,14,9,34,1",64,0.001,10,200,0.0,18261,0.729145,0.183716,0.624071,0.059691,0.849174,0.100301,16.340395,5.740201,2.424688,0.29464,4.000123,0.651352

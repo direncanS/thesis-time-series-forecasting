@@ -1,0 +1,4 @@
+model,seeds,deterministic,best_epochs,batch_size,learning_rate,patience,max_epochs,weight_decay,mse_scaled_mean,mse_scaled_std,mae_scaled_mean,mae_scaled_std,mse_original_mean,mse_original_std,mae_original_mean,mae_original_std,rmse_original_mean,rmse_original_std
+LR,deterministic,True,,64,0.0,0,0,0.0,0.349832,0.0,0.395826,0.0,7.660473,0.0,1.465105,0.0,2.767756,0.0
+MLP,"42,123,456,789,1024",False,"13,24,11,23,20",64,0.0001,10,200,0.0,0.475788,0.02281,0.492518,0.011459,9.467519,0.11819,1.808282,0.009567,3.076885,0.019198
+LSTM,"42,123,456,789,1024",False,"25,28,36,24,20",64,0.0001,10,200,0.0,0.613713,0.04845,0.566692,0.021316,12.917726,0.432037,2.143622,0.061403,3.593724,0.059911
