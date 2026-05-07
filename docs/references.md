@@ -12,11 +12,11 @@ Lundberg, S.M. and Lee, S.-I. (2017) 'A unified approach to interpreting model p
 
 Ouyang, J., Ravier, P. and Jabloun, M. (2022) 'Are deep learning models practically good as promised? A strategic comparison of deep learning models for time series forecasting', in *2022 30th European Signal Processing Conference (EUSIPCO)*. Belgrade, Serbia: IEEE, pp. 1477-1481.
 
-Politis, D.N. and White, H. (2004) 'Automatic block-length selection for the dependent bootstrap', *Econometric Reviews*, 23(1), pp. 53-70.
+Politis, D.N. and White, H. (2004) 'Automatic block-length selection for the dependent bootstrap', *Econometric Reviews*, 23(1), pp. 53-70. doi:10.1081/ETC-120028836.
 
 Rathnayaka, P., Moraliyage, H., Mills, N., De Silva, D. and Jennings, A. (2022) 'Specialist vs generalist: a transformer architecture for global forecasting energy time series', in *2022 15th International Conference on Human System Interaction (HSI)*. IEEE. doi:10.1109/HSI55341.2022.9869463.
 
-Samek, W., Binder, A., Montavon, G., Lapuschkin, S. and Müller, K.-R. (2017) 'Evaluating the visualization of what a deep neural network has learned', *IEEE Transactions on Neural Networks and Learning Systems*, 28(11), pp. 2660-2673.
+Samek, W., Binder, A., Montavon, G., Lapuschkin, S. and Müller, K.-R. (2017) 'Evaluating the visualization of what a deep neural network has learned', *IEEE Transactions on Neural Networks and Learning Systems*, 28(11), pp. 2660-2673. doi:10.1109/TNNLS.2016.2599820.
 
 Shetty, S.K., Saxena, T. and Shreyash (2025) 'Integrating ARIMA with SHAP for cryptocurrency price prediction', in *2025 IEEE International Conference on Electronics, Computing and Communication Technologies (CONECCT)*. IEEE. doi:10.1109/CONECCT65861.2025.11306541.
 

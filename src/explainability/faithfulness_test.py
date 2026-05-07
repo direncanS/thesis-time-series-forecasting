@@ -62,11 +62,10 @@ Outputs
 
 Transparency note
 -----------------
-AOPC was introduced in the v2 rerun of the closure plan following the
-observation that the v1 binary ``top > bottom`` rule produced a 12/12
-pass on three seeds and a flat RQ3 y-axis. AOPC replaces binary as the
-primary RQ2 faithfulness measure; the thesis does not claim formal
-pre-registration.
+AOPC was introduced in the v2 rerun following the observation that the
+v1 binary ``top > bottom`` rule produced a 12/12 pass on three seeds and
+a flat RQ3 y-axis. AOPC replaces binary as the primary RQ2 faithfulness
+measure; the thesis does not claim formal pre-registration.
 
 Run
 ---
