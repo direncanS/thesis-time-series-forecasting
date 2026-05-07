@@ -1,4 +1,4 @@
-# Bachelor-safe Makefile. deliverable.
+# Bachelor-safe Makefile.
 #
 # Assumes the `thesis` conda env is active. If PATH drift on Windows
 # PowerShell leaves `python` pointing at the base env, override:
