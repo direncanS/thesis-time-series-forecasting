@@ -104,7 +104,7 @@ conda run -n thesis python scripts/smoke_checkpoint.py
 - **Compatible ranges (accepted):** pandas 2.3.3, sklearn 1.7.2, shap 0.49.1, matplotlib 3.10.8 — all within `requirements.txt` compatible ranges.
 - **Smoke checkpoint PASS:** 3/3 — MLP (124,328 params + shape (1,168) + finite), LSTM (29,608 params + shape (1,168) + finite), TFT (18,261 params). Warnings cosmetic (triton flop counter, lightning save_hyperparameters on loss/logging_metrics).
 - **Render toolchain:** pandoc + tectonic installed via `conda install -n thesis -c conda-forge pandoc tectonic -y` ; render smoke PASS (`docs/_smoke_render.pdf` 28 KB produced).
-- **Notes:** Install steps A/B (torch nightly + requirements.txt) were unnecessary — env `thesis` pre-existed fully configured (probably from the session that produced the VALIDATED baselines). Python 3.10.19 vs 3.11 manifest drift logged; no action required (core stack bit-equivalent).
+- **Notes:** Install steps A/B (torch nightly + requirements.txt) were unnecessary — env `thesis` pre-existed fully configured from an earlier setup that produced the VALIDATED baselines. Python 3.10.19 vs 3.11 manifest drift logged; no action required (core stack bit-equivalent).
 
 ## Gate B update (2026-04-22 — lite reproducibility)
 

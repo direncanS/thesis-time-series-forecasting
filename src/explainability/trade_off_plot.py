@@ -3,8 +3,8 @@
 Visualises the RQ3 trade-off by plotting per-model overall MSE (predictive
 accuracy axis) against per-model AOPC (continuous faithfulness axis). AOPC
 replaces the v1 binary top-vs-bottom pass rate (flat y-axis) and the
-post-hoc ``gap_mean`` patch it superseded; both are retired by the v6.1
-plan (see methodology § 2.9.X for the transparency note).
+post-hoc ``gap_mean`` patch it superseded; both are retired in the active
+v2 evaluation (see methodology § 2.9 for the transparency note).
 
 Role separation
 ------------------------------------------

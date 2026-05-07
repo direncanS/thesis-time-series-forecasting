@@ -1,10 +1,10 @@
 """AOPC continuous faithfulness over occlusion ranks.
 
-Purpose (RQ2/RQ3 closure target)
---------------------------------
-Closes C6 (continuous faithfulness metric) for the bachelor-safe v6.1 plan.
+Purpose (RQ2/RQ3)
+-----------------
+Provides a continuous faithfulness metric for the active v2 evaluation.
 Consumes the common occlusion ranks produced by
-``src/explainability/common_importance.py`` (B7a) and computes the
+``src/explainability/common_importance.py`` and computes the
 Area Over Perturbation Curve (AOPC; Samek et al., 2017 — time-series
 adaptation).
 

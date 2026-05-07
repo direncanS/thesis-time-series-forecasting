@@ -19,7 +19,7 @@ uncertainty-layer discipline.
 - **Interpretation note:** Visualises the scale differences and non-stationary
   dynamics that motivate multivariate forecasting in the fair-core design.
 - **Limitation note:** A single dataset cannot support general-domain
-  generalisation claims (§ 17 external validity).
+  generalisation claims; this scope limit is discussed in Discussion § 4.2.
 
 ## Figure 2 — Train / validation / test split and sliding window
 
@@ -31,11 +31,11 @@ uncertainty-layer discipline.
 - **Input data:** `data/ETTh1.csv` (row count for boundaries); schematic drawn
   programmatically.
 - **Interpretation note:** Documents the experimental regime that the
-  Fairness and Comparability Protocol (§ 11) enforces identically across the
-  four core models.
+  fairness and comparability protocol in Methodology § 2.5 keeps shared across
+  the four core models.
 - **Limitation note:** Sliding windows overlap, so the independence assumption
-  underlying classical inference is violated; this is acknowledged in the
-  Methods chapter (§ 16).
+  underlying classical inference is violated; this is acknowledged in
+  Discussion § 4.2.
 
 ## Figure 3 — Pipeline architecture
 
@@ -46,7 +46,7 @@ uncertainty-layer discipline.
   evaluation, and artifact-recording protocol across the selected models.
 - **Input data:** None (structural diagram derived from the repository layout:
   `src/training/`, `src/evaluation/`, `src/explainability/`, `results/`).
-- **Interpretation note:** Supports the Solution chapter's standard-software
+- **Interpretation note:** Supports the Solution § 3.3 standard-software
   defence — an off-the-shelf library cannot enforce these symmetries across
   structurally different model families without this integration layer.
 - **Limitation note:** A diagram is an abstraction of the executable pipeline;
@@ -65,7 +65,8 @@ uncertainty-layer discipline.
 - **Interpretation note:** Values are observed under the present configuration.
   Pairwise statistical differences with 95 % moving-block bootstrap confidence
   intervals are reported separately in `bootstrap_intervals.csv` and are the
-  evidentiary basis required by § 11C for any ranking-language claim.
+  evidence base for the cautious ranking language used in Solution § 3.5 and
+  Discussion § 4.1.
 - **Limitation note:** Error bars capture seed-to-seed variability only; they
   are not paired-difference confidence intervals. The comparison is made on
   the ETTh1 test set alone.
@@ -80,7 +81,7 @@ uncertainty-layer discipline.
 - **Input data:** `results/bachelor_safe_v2/per_horizon_metrics.csv`.
 - **Interpretation note:** The horizon axis is entirely within the configured
   96 h → 24 h forecasting task. The figure makes the aggregation along the
-  horizon axis visible as required by § 15.
+  horizon axis visible for the descriptive results in Solution § 3.5.
 - **Limitation note:** Findings apply strictly to this forecast-horizon
   configuration; they do not imply model superiority at other horizons or on
   other forecasting tasks.
@@ -101,8 +102,8 @@ uncertainty-layer discipline.
   definition; no claim of general "explanation quality" is made.
 - **Limitation note:** Faithfulness here is quantified by a single occlusion
   instrument on scaled inputs with the training-mean baseline; other
-  faithfulness definitions may yield different orderings (§ 13, § 17
-  construct validity).
+  faithfulness definitions may yield different orderings, as discussed in
+  Methodology § 2.8 and Discussion § 4.2.
 
 ## Figure 7 — Cross-model XAI rank agreement
 
@@ -120,7 +121,7 @@ uncertainty-layer discipline.
   causal evidence.
 - **Limitation note:** The XAI instrument is fixed; agreement reported here
   does not generalise to other XAI families such as SHAP or integrated
-  gradients (§ 13).
+  gradients, as described in Methodology § 2.8.
 
 ## Figure 8 — Performance / interpretability positioning
 
@@ -150,8 +151,9 @@ uncertainty-layer discipline.
   categories — linear, shallow MLP, recurrent, transformer-family — are
   annotated on the left panel.
 - **Input data:** `results/bachelor_safe_v2/complexity_metrics.csv`.
-- **Interpretation note:** Parameter count is the § 14-defined primary
-  complexity measure. Wall-clock is a contextual secondary measure only.
+- **Interpretation note:** Parameter count, runtime trace, and model class are
+  the complexity indicators defined in Methodology § 2.7. Wall-clock is a
+  contextual runtime trace only.
 - **Limitation note:** Training wall-clock is hardware-dependent and was
   measured on a single local machine (see README and the `hardware_note`
   column of the source CSV). It should not be treated as a universal model

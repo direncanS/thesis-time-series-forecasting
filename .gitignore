@@ -22,12 +22,5 @@ lightning_logs/
 .DS_Store
 Thumbs.db
 
-# Claude Code local state
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
-
 # Academic PDFs (copyright — cited via Harvard entries; not redistributed via git)
 References/*.pdf
-
-# Plan / scratch (kept outside repo)
-.claude/plans/

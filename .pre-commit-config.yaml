@@ -1,5 +1,4 @@
 # Pre-commit config. Installed via `pre-commit install` after `conda activate thesis`.
-# B4 (2026-04-22): regen_tables-verify hook added; B3 ruff hook added.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -21,7 +20,7 @@ repos:
         files: \.py$
 
       - id: regen-tables-verify
-        name: regen_tables.py --verify (prose ↔ CSV sync, C12)
+        name: regen_tables.py --verify (prose ↔ CSV sync)
         entry: python scripts/regen_tables.py --verify
         language: system
         pass_filenames: false

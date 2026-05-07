@@ -5,18 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "thesis-bachelor-safe"
 version = "0.1.0"
-description = "Fair-core time-series forecasting + interpretability pipeline (bachelor thesis; )."
+description = "Fair-core time-series forecasting + interpretability pipeline (bachelor thesis)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
- { name = "Diren Cansahin", email = "direncansahin@gmail.com" }
+ { name = "Z.Direncan Sahin", email = "direncansahin@gmail.com" }
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*", "tests*"]
-exclude = ["archive*", "docs*", "configs*", "results*", "checkpoints*", "lightning_logs*", "References*", "scripts*"]
+exclude = ["docs*", "configs*", "results*", "checkpoints*", "lightning_logs*", "References*", "scripts*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -33,7 +33,7 @@ markers = [
 line-length = 120
 target-version = "py310"
 src = ["src", "tests", "scripts"]
-extend-exclude = ["archive", "lightning_logs", "results", "checkpoints", "References"]
+extend-exclude = ["lightning_logs", "results", "checkpoints", "References"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
@@ -47,9 +47,8 @@ ignore = [
 "tests/*.py" = ["F401"]
 "src/common.py" = ["F401"]
 # Legacy iteration patterns. B905 (zip-without-strict) + B007 (unused loop var) are
-# cosmetic; the SHAP layer is scheduled for rewrite in B7 (common XAI occlusion) and
-# the bootstrap + VSN iteration patterns are intentional (same-length guarantees by
-# upstream contract). Revisit after B7/B8 rewrites.
+# cosmetic; the SHAP layer is auxiliary and the bootstrap + VSN iteration patterns
+# are intentional (same-length guarantees by upstream contract).
 "src/explainability/*.py" = ["B905", "B007"]
 "src/evaluation/post_training_analysis.py" = ["B905", "B007"]
 "src/training/tft_fair_5seed.py" = ["B905"]

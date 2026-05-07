@@ -5,7 +5,7 @@ Purpose (RQ2 closure target)
 Quantifies how much the four core models agree on which variables are most
 important. Primary cross-model agreement is computed on the common
 *occlusion-importance* instrument produced by
-``src/explainability/common_importance.py`` (B7a), because occlusion is the
+``src/explainability/common_importance.py`` , because occlusion is the
 only importance measure that is the same measurement object across all four
 models.
 
@@ -24,7 +24,7 @@ six model pairs, compute Spearman ρ and Kendall τ on the 7 ETTh1 variables.
 
 Inputs
 ------
-    results/bachelor_safe_v2/occlusion_importance.csv          — B7a primary
+    results/bachelor_safe_v2/occlusion_importance.csv          — primary
     results/bachelor_safe_v2/shap_{lr,mlp,lstm}.csv (optional) — auxiliary
     results/bachelor_safe_v2/tft_importance.csv     (optional) — auxiliary
 
@@ -162,7 +162,7 @@ def run_agreement(
             f"missing {occlusion_csv} — run src/explainability/common_importance.py first"
         )
 
-    print(f"[B7] results_dir={results_path}")
+    print(f"[xai] results_dir={results_path}")
     print("\n[PRIMARY] Occlusion-based cross-model agreement")
     occlusion_vectors = build_occlusion_vectors(occlusion_csv)
     for m, v in occlusion_vectors.items():
@@ -197,7 +197,7 @@ def run_agreement(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="B7 — cross-model XAI agreement (occlusion primary + SHAP/VSN auxiliary)."
+        description="cross-model XAI agreement (occlusion primary + SHAP/VSN auxiliary)."
     )
     parser.add_argument("--config", default="configs/experiments/fair_core_v2.yaml")
     parser.add_argument("--results-dir", default=None)

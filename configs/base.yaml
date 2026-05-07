@@ -1,11 +1,11 @@
-# Shared defaults for all .
+# Shared defaults for all experiments.
 # Mirrors src/common.py::DEFAULT_CONFIG. This file is the documentation-level
 # restatement so the fair-core v2 contract is visible without reading source.
 # Experiments can reduce their own YAML to `extends: ../base.yaml` + overrides.
 
 data_path: data/ETTh1.csv
 
-# Sliding-window spec (the active configuration § 4)
+# Sliding-window spec
 input_len: 96
 output_len: 24
 
@@ -14,15 +14,15 @@ batch_size: 64
 max_epochs: 200
 patience: 10
 
-# 5 seeds
+# 5 stochastic seeds
 seeds: [42, 123, 456, 789, 1024]
 
-# B5 output locations (v1 under archive/pre-v2-2026-04-22/)
+# Active v2 output locations
 results_dir: results/bachelor_safe_v2
 checkpoints_dir: checkpoints/bachelor_safe_v2
 
 # 5-flag FP32 regime for stochastic neural models (MLP/LSTM/TFT).
-# LR (closed-form OLS) is deterministic-baseline-exempt per the active configuration § 11A item 9.
+# LR (closed-form OLS) is deterministic-baseline-exempt.
 # Applied by src/common.py::configure_stochastic_runtime.
 precision:
  matmul: highest
@@ -31,7 +31,7 @@ precision:
  cudnn_deterministic: true
  cudnn_benchmark: false
 
-# Per-model hyperparameters (the active configuration § 10 locked defaults).
+# Per-model hyperparameters (locked defaults).
 models:
  mlp:
  hidden_size: 128

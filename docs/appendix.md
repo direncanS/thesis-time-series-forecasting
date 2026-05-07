@@ -1,249 +1,279 @@
+# Abkürzungsverzeichnis
+
+| Abbreviation | Meaning |
+|---|---|
+| AOPC | Area Over the Perturbation Curve; perturbation-based faithfulness criterion used for explanation evaluation |
+| CI | Confidence interval |
+| CSV | Comma-separated values file |
+| ETTh1 | Electricity Transformer Temperature hourly benchmark dataset, first transformer station |
+| GPU | Graphics processing unit |
+| HUFL | ETTh1 variable: high useful load |
+| HULL | ETTh1 variable: high useless load |
+| IID | Independent and identically distributed |
+| LR | Linear Regression |
+| LSTM | Long Short-Term Memory network |
+| LUFL | ETTh1 variable: low useful load |
+| LULL | ETTh1 variable: low useless load |
+| MAE | Mean Absolute Error |
+| MLP | Multilayer Perceptron |
+| MSE | Mean Squared Error |
+| MUFL | ETTh1 variable: middle useful load |
+| MULL | ETTh1 variable: middle useless load |
+| OT | ETTh1 variable: oil temperature |
+| RMSE | Root Mean Squared Error |
+| RQ | Research question |
+| SHAP | SHapley Additive exPlanations |
+| TFT | Temporal Fusion Transformer |
+| VSN | Variable Selection Network |
+| XAI | Explainable Artificial Intelligence |
+
+# Dokumentationstabelle KI-basierte Hilfsmittel
+
+| Feld | Inhalt |
+|---|---|
+| Tool | ChatGPT / KI-basiertes Sprachassistenzsystem |
+| Verwendungszweck | Sprachliche Überarbeitung, insbesondere Prüfung von Grammatik, Verständlichkeit und semantisch unklaren Formulierungen. |
+| Umfang der Nutzung | Unterstützung bei der Formulierung und sprachlichen Glättung einzelner Textpassagen. |
+| Kontrolle durch den Autor | Alle fachlichen Inhalte, experimentellen Ergebnisse, Interpretationen und Quellenangaben wurden vom Autor eigenständig geprüft und verantwortet. |
+
 # Appendix
 
-<!-- Main text must stand alone without the appendix. -->
-<!-- File names and implementation snippets are admissible here. -->
+The main thesis text is intended to stand on its own. This appendix records technical details that support traceability, but are not required for understanding the core argument in Chapters 1 to 4.
 
-## A. Full Hyperparameter Tables
+## Appendix A. Hyperparameter Configurations
 
-The values below are the locked implementation defaults of this thesis. They are reproduced here for reference and are not changed across any reported run.
+The values in this section document the active configuration used for the reported ETTh1 experiment. The primary configuration file is `configs/experiments/fair_core_v2.yaml`, which extends `configs/base.yaml`.
 
-### A.1 Linear Regression (LR)
-
-| Field | Value |
-|-------|-------|
-| Solver | Closed-form OLS (`sklearn.linear_model.LinearRegression`) |
-| Input dimensionality | 672 (96 × 7, flattened) |
-| Output dimensionality | 168 (24 × 7, flattened) |
-| Optimiser | N/A (deterministic; deterministic-baseline exception) |
-| Learning rate | N/A |
-| Validation monitor | N/A (deterministic-baseline exception) |
-| Checkpoint | N/A |
-| Seeds | N/A (deterministic) |
-
-### A.2 MLP
+### Tabelle A.1: Pipeline-Level Constants
 
 | Field | Value |
-|-------|-------|
-| Architecture | 672 → 128 → 128 → 168 (ReLU activations) |
-| Optimiser | Adam |
-| Learning rate | 1e-4 |
-| Loss | `nn.MSELoss()` |
+|---|---|
+| Dataset path | `data/ETTh1.csv` |
+| Active result directory | `results/bachelor_safe_v2/` |
+| Active checkpoint directory | `checkpoints/bachelor_safe_v2/` |
+| Forecasting target | All seven numerical ETTh1 variables |
+| Chronological split | 60 percent train, 20 percent validation, 20 percent test |
+| Scaling | `StandardScaler` fitted on the training partition only |
+| Input length | 96 hours |
+| Forecast horizon | 24 hours |
+| Forecasting type | Direct multi-step prediction |
 | Batch size | 64 |
+| Maximum epochs | 200 |
 | Patience | 10 |
-| Max epochs | 200 |
+| Stochastic seeds | 42, 123, 456, 789, 1024 |
+| Final metrics | MSE, MAE, and RMSE after inverse transformation to the original data scale |
+| Diagnostic metrics | Scaled-space diagnostics may be retained separately |
+| Bootstrap method | Paired moving-block bootstrap |
+| Bootstrap block length | 96 |
+| Bootstrap resamples | 10,000 |
+| Bootstrap seed | 2026 |
+
+### Tabelle A.2: Linear Regression Configuration
+
+| Field | Value |
+|---|---|
+| Implementation | `sklearn.linear_model.LinearRegression` |
+| Input dimensionality | 672 values, corresponding to 96 hours times 7 variables |
+| Output dimensionality | 168 values, corresponding to 24 hours times 7 variables |
+| Optimisation | Closed-form OLS fitting |
+| Seed handling | Not seed-dependent |
+| Checkpointing | Not applicable |
+| Deterministic-baseline role | LR is fitted once and then passed through the shared prediction and evaluation pipeline |
+
+### Tabelle A.3: MLP Configuration
+
+| Field | Value |
+|---|---|
+| Architecture | 672 -> 128 -> 128 -> 168 with ReLU activations |
+| Implementation | PyTorch custom training loop |
+| Optimiser | Adam |
+| Learning rate | 0.0001 |
 | Weight decay | 0.0 |
-| Validation monitor | val_loss (MSE on validation windows) |
-| Checkpoint rule | Restore-best-weights via `load_state_dict` |
+| Loss | `nn.MSELoss()` |
+| Gradient clipping | `max_norm = 0.1` |
+| Validation monitor | Validation loss |
+| Model selection | Same validation-loss-based restore-best principle with framework-specific implementation |
+| Checkpointing | One `.pt` checkpoint per stochastic seed |
 | Seeds | 42, 123, 456, 789, 1024 |
 
-### A.3 LSTM
+### Tabelle A.4: LSTM Configuration
 
 | Field | Value |
-|-------|-------|
-| Architecture | Single LSTM layer (hidden = 64, 1 layer); last-hidden → linear → 168 |
+|---|---|
+| Architecture | One LSTM layer with hidden size 64, followed by a linear output layer |
+| Number of recurrent layers | 1 |
+| Input dimensionality per time step | 7 variables |
+| Output dimensionality | 168 values, corresponding to 24 hours times 7 variables |
+| Implementation | PyTorch custom training loop |
 | Optimiser | Adam |
-| Learning rate | 1e-4 |
-| Loss | `nn.MSELoss()` |
-| Batch size | 64 |
-| Patience | 10 |
-| Max epochs | 200 |
+| Learning rate | 0.0001 |
 | Weight decay | 0.0 |
-| Validation monitor | val_loss (MSE) |
-| Checkpoint rule | Restore-best-weights via `load_state_dict` |
+| Loss | `nn.MSELoss()` |
+| Gradient clipping | `max_norm = 0.1` |
+| Validation monitor | Validation loss |
+| Model selection | Same validation-loss-based restore-best principle with framework-specific implementation |
+| Checkpointing | One `.pt` checkpoint per stochastic seed |
 | Seeds | 42, 123, 456, 789, 1024 |
 
-### A.4 TFT
+### Tabelle A.5: TFT Configuration
 
 | Field | Value |
-|-------|-------|
-| Framework | `pytorch-forecasting` 1.6.1 on Lightning 2.6.1 |
+|---|---|
+| Implementation | `pytorch-forecasting` with Lightning |
 | Hidden size | 16 |
 | Attention heads | 4 |
 | Hidden continuous size | 8 |
 | Dropout | 0.1 |
 | Optimiser | Adam |
-| Learning rate | 1e-3 |
-| Loss | Custom MSE class subclassing `MultiHorizonMetric` with `reduction="mean"` (LOSS-SYMMETRY-01 PASS — symmetric with `nn.MSELoss()` in the core models) |
-| Batch size | 64 |
-| Patience | 10 |
-| Max epochs | 200 |
+| Learning rate | 0.001 |
 | Weight decay | 0.0 |
-| Information regime | Past-only (`time_varying_known_reals=[]`) |
-| Target scope | All 7 ETTh1 variables (multivariate) |
-| Output | Deterministic point forecast (no quantile / probabilistic head) |
-| Validation monitor | val_loss (sum of per-target MSE) |
-| Checkpoint rule | Lightning `ModelCheckpoint(monitor="val_loss", mode="min", save_top_k=1)` + `load_from_checkpoint(best_path)` |
+| Loss | Unified MSE implementation for the active fair-core comparison |
+| Gradient clipping | `gradient_clip_val = 0.1` |
+| Target normalisation inside TFT dataset | Identity normaliser, because the shared train-only scaler has already been applied |
+| Future known reals | None |
+| Target scope | All seven ETTh1 variables |
+| Output type | Deterministic point forecast |
+| Validation monitor | Validation loss |
+| Model selection | Same validation-loss-based restore-best principle with framework-specific implementation |
+| Checkpointing | One `.ckpt` checkpoint per stochastic seed |
 | Seeds | 42, 123, 456, 789, 1024 |
 
-### A.5 Pipeline-level constants
+### Tabelle A.6: Toolchain Summary
 
-| Field | Value |
-|-------|-------|
-| Dataset | ETTh1 (17 420 hourly observations × 7 variables) |
-| Split | 60 / 20 / 20 chronological (train / val / test) |
-| Scaler | `StandardScaler` fit on training partition only |
-| INPUT_LEN | 96 |
-| OUTPUT_LEN | 24 |
-| Test window count (aligned) | 3 365 |
-| Bootstrap N | 10 000 |
-| BOOTSTRAP_SEED | 2026 |
-| SHAP N_EVAL | 100 |
-| SHAP EVAL_SEED | 42 |
-| SHAP N_BG | 100 (MLP, LSTM); full training set (LR, `LinearExplainer` closed-form) |
-| SHAP BG_SEED | 42 (MLP, LSTM); not applicable (LR) |
-| SHAP baseline | training-distribution mean in the scaled input space — zero-vector by `StandardScaler` construction; see methodology § 2.9.0 |
+| Tool or library | Role in the artifact |
+|---|---|
+| Python 3.10 | Main programming language and execution environment |
+| PyTorch | Tensor operations and neural model training |
+| Lightning | TFT training loop, callbacks, and checkpoint handling |
+| `pytorch-forecasting` | TFT implementation |
+| scikit-learn | LR baseline and `StandardScaler` |
+| `arch` | Moving-block bootstrap implementation |
+| SHAP | Auxiliary LR, MLP, and LSTM explanation artifacts |
+| Matplotlib | Figure generation |
+| PyYAML | Configuration loading |
 
-## B. Additional Result Plots
+## Appendix B. Diagnostic and Symmetrisation Notes
 
-The following plot artefacts are produced by the pipeline and are referenced in the main text but are not embedded inline:
+### B.1 Counterintuitive-Result Handling
 
-- Per-seed validation-loss training curves for MLP and LSTM (`results/training_curves.csv`).
-- Per-seed validation-loss training curves for TFT (`results/tft_training_curves.csv`).
+The thesis does not discard a result because it is counterintuitive relative to expectations about model complexity. When LR reports lower final original-scale error than the neural models within this experimental setup, the result is handled as a configuration-bound empirical outcome. The supporting checks are the shared dataset contract, the same train-only scaling rule, split-local windowing, frozen prediction tensors, common metric aggregation, paired moving-block bootstrap intervals, and artifact-level verification. The interpretation remains limited to the selected dataset, models, metrics, and 96-to-24 forecasting task.
 
-Combined-overlay plots were previously planned via `src/utils/prediction_vis_combined.py`, which was dropped from the pipeline on 2026-04-20 (archive migration; the script assumed an OT-only TFT target inconsistent with the locked implementation defaults). The thesis therefore does not include rendered combined-overlay plots; source CSVs above remain the per-model reference.
+### B.2 CLIP-SYMMETRY-01
 
-## C. Code Structure Reference
+The stochastic neural paths use aligned gradient-clipping thresholds. The MLP and LSTM custom PyTorch loop applies `torch.nn.utils.clip_grad_norm_(..., max_norm=0.1)`. The TFT Lightning trainer uses `gradient_clip_val=0.1`. This detail reduces an avoidable training-protocol asymmetry among the stochastic neural models. It does not apply to LR because LR is a deterministic closed-form baseline rather than an iterative neural optimisation path.
 
-The mapping below relates the conceptual components of § 3.2 to the implementation files in `src/` and the artefacts in `results/` and `checkpoints/`. This is the only place in the thesis where file names appear (§ 5; main text is component-level).
+### B.3 Training-Protocol Asymmetries Register
 
-The `src/` tree is organised by concern into four subfolders (refactor 2026-04-20):
+| Asymmetry | Reason | Handling in the thesis |
+|---|---|---|
+| LR has no seed axis | LR is fitted once as a deterministic OLS baseline | Reported separately from stochastic seed summaries |
+| LR has no checkpoint | No iterative state needs to be restored for LR | Traceability is provided through the fitting and prediction-export procedure |
+| MLP/LSTM use custom PyTorch loops while TFT uses Lightning | TFT is implemented through `pytorch-forecasting` and Lightning callbacks | The common rule is validation-loss-based restore-best state selection, not identical implementation code |
+| TFT uses an identity normaliser inside its dataset object | The shared `StandardScaler` has already standardised the data | This avoids double scaling while keeping the train-only scaling contract |
+| Auxiliary explanation outputs differ by model family | SHAP and TFT-native VSN / `interpret_output` are different explanation objects | The primary comparison uses occlusion importance, AOPC, and rank agreement instead |
 
-```
-src/
-├── training/ core-model training paths
-├── evaluation/ prediction export + post-training analysis + per-horizon metrics
-└── explainability/ SHAP + faithfulness + cross-model agreement + trade-off plot
-```
+### B.4 Ensemble-Versus-Single-Seed Distinction
 
-(`src/utils/` now holds only a package-marker `__init__.py` after the archive migration 2026-04-20: its prior inhabitants — `verify_reproducibility.py`, `eval_original_scale.py`, `prediction_vis_combined.py` — all assumed an OT-only TFT regime inconsistent with the fair-core configuration and were moved to `archive/superseded_src/`.)
+The stochastic model summaries are not ensemble forecasts. MLP, LSTM, and TFT are trained separately for the five active seeds, and their results are reported as seed-level values plus mean and standard deviation where applicable. The prediction tensors remain seed-specific. LR is not seed-dependent and therefore has one fitted value rather than a seed distribution.
 
-<!-- @begin-include _generated/pipeline_status_table.md -->
-| Conceptual component | File(s) | Status | Output artefact(s) |
-|----------------------|---------|--------|---------------------|
-| Data processing | `src/training/multi_seed.py`; `src/training/tft_fair_5seed.py` | **VALIDATED** | scaled tensors in memory |
-| LR training path | `src/training/multi_seed.py` (LR pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LR row) |
-| MLP training path | `src/training/multi_seed.py` (MLP pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (MLP rows); `checkpoints/mlp_seed*.pt` |
-| LSTM training path | `src/training/multi_seed.py` (LSTM pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed*.pt` |
-| TFT training path | `src/training/tft_fair_5seed.py` | **VALIDATED** | `results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed*.ckpt` |
-| Prediction export | `src/evaluation/export_predictions.py` | **VALIDATED** | `results/preds_*.npy` (shape `(n_test, 24, 7)`) |
-| Post-training analysis (per-seed + complexity + bootstrap) | `src/evaluation/post_training_analysis.py` | **VALIDATED** | `results/per_seed_metrics.csv`; `results/complexity_metrics.csv`; `results/bootstrap_intervals.csv` + `bootstrap_block_sensitivity.csv` |
-| Explainability — SHAP | `src/explainability/shap_lr.py`; `src/explainability/shap_mlp.py`; `src/explainability/shap_lstm.py` | **VALIDATED** | `results/shap_{lr,mlp,lstm}.csv` |
-| Explainability — VSN | `src/training/tft_fair_5seed.py` (TFT VSN extraction) | **VALIDATED** | `results/tft_importance.csv` |
-| Faithfulness layer | `src/explainability/faithfulness_test.py` | **VALIDATED** | `results/faithfulness.csv` |
-| Cross-model XAI agreement | `src/explainability/cross_model_xai_agreement.py` | **VALIDATED** | `results/xai_agreement.csv` |
-| Accuracy ↔ interpretability trade-off plot | `src/explainability/trade_off_plot.py` | **VALIDATED** | `results/trade_off_data.csv`; `results/trade_off_plot.png` |
-| Per-horizon disaggregated metrics | `src/evaluation/per_horizon_metrics.py` | **VALIDATED** | `results/per_horizon_metrics.csv` |
-<!-- @end-include -->
+## Appendix C. Reproducibility Verification Details
 
-## D. Configuration Files
+The current saved verification report is `results/bachelor_safe_v2/reproducibility_verification_report.json`. It records `mode: core` and `status: PASS` for the primary pipeline state. The report also records the active configuration `configs/experiments/fair_core_v2.yaml`, result directory `results/bachelor_safe_v2`, checkpoint directory `checkpoints/bachelor_safe_v2`, five active seeds, checksum manifest creation, and 74 verified artifacts.
 
-The pipeline does not use external configuration files. All run-time constants are encoded as module-level constants inside the relevant `src/` files; the canonical reference for these constants is this appendix's hyperparameter tables (§ A above).
+### Tabelle C.1: Verification Groups in the Saved Core Report
 
-## E. Reproducibility Verification — Tier 1 vs Tier 2
+| Group | Checked content |
+|---|---|
+| Configuration | Active config path, data path, input length, output length, result directory, checkpoint directory, and seeds |
+| Dataset | Dataset file, expected columns, row count, and missing-value check |
+| Core CSV artifacts | Training summaries, per-seed metrics, per-horizon metrics, bootstrap intervals, runtime traces, training-curve traces, complexity metrics, and block-sensitivity data |
+| Primary XAI CSV artifacts | Occlusion importance, AOPC summaries, occlusion rank agreement, TFT importance, and trade-off data |
+| Prediction arrays | LR predictions and one prediction array for each stochastic model seed |
+| Checkpoints | No LR checkpoint expected; MLP, LSTM, and TFT checkpoints expected for each stochastic seed |
+| Figures | Figure 1 to Figure 9 in both PDF and PNG form |
+| Generated tables | Markdown tables generated from the active result files |
+| Provenance outputs | Checksum manifest and verification report |
 
-The checklist below describes the reproducibility evidence the thesis relies on. A dedicated automation script was prototyped (`src/utils/verify_reproducibility.py`) but was dropped on 2026-04-20 during the archive migration because it reconstructed TFT under the OT-only + future-covariates regime (inconsistent with the fair-core configuration) and re-trained the model inside the check rather than loading the authoritative `checkpoints/tft_seed*.ckpt`. A fair-core replacement (checkpoint-load witness only; no re-train) is future work. Until then, the individual checks listed below are verified *ad hoc* from the current artefacts in `results/` + `checkpoints/`.
+The saved report verifies the primary artifact tree. Auxiliary SHAP regeneration is not part of the saved core report state; the report records `auxiliary_shap_regenerated: false` and `auxiliary_xai_verified: false`. This distinction is kept so that the thesis does not present auxiliary explanation artifacts as part of the current saved core verification state.
 
-| ID | Check | Tier |
-|----|-------|------|
-| RV-01 | LR coefficient matrix byte-identical across reruns | Tier 1 |
-| RV-02 | LR prediction tensor (`results/preds_lr.npy`) byte-identical across reruns | Tier 1 |
-| RV-03 | MLP / LSTM prediction tensors byte-identical across reruns from the same checkpoint | Tier 1 |
-| RV-04 | TFT prediction tensors byte-identical across reruns from the same checkpoint | Tier 1 |
-| RV-05 | Metric CSV row-set byte-identical across reruns (deterministic re-export) | Tier 1 |
-| RV-06 | Bootstrap intervals byte-identical for fixed `BOOTSTRAP_SEED` and fixed predictions | Tier 1 |
-| RV-07 | Complexity metrics CSV byte-identical across reruns | Tier 1 |
-| RV-08 | MLP MSE rerun within ±0.5 of recorded baseline (CONSIST-02 tolerance) | Tier 2 |
-| RV-09 | LSTM MSE rerun within ±1.0 of recorded baseline (CONSIST-03 tolerance) | Tier 2 |
-| RV-10 | TFT MSE rerun within ±2 × seed-std of recorded baseline | Tier 2 |
-| RV-11 | Per-seed best-epoch values within recorded ranges (CONSIST-05 / -06) | Tier 2 |
-| RV-12 | Window counts identical (3 365 test windows, fixed split) | Tier 1 |
-| RV-13 | Train-only scaler fit verified by inspection of fitted statistics | Tier 1 |
+The verification statement is artifact-level. It checks that the active repository state contains the expected files and internally consistent outputs for the documented configuration. It is not a general statement about machine-independent numerical execution across arbitrary hardware or software environments.
 
-## F. Extended Result Tables
+## Appendix D. Auxiliary SHAP and VSN Outputs
 
-### F.1 Per-seed point metrics (original scale)
+The primary interpretability comparison in the thesis uses occlusion importance, AOPC, and rank agreement. SHAP and TFT-native outputs are retained only as auxiliary explanation artifacts because they are not method-identical.
 
-The headline § 3.8.1 table reports mean ± std across seeds. The per-seed values used to compute those summaries are reproduced below for transparency. TFT per-seed values are read directly from `results/tft_metrics.csv`; LR is deterministic. MLP and LSTM per-seed values are produced by the post-training analysis helper `src/evaluation/post_training_analysis.py` (Section 1, which loads the frozen prediction tensors `results/preds_<model>_seed<s>.npy` and reapplies `compute_original_metrics`); the cells marked `[run helper]` will be filled in once the helper has been run.
+### Tabelle D.1: Auxiliary Explanation Artifacts
 
-<!-- @begin-include _generated/per_seed_table.md -->
-| Model | Seed | MSE       | MAE       | RMSE      | Best epoch |
-|-------|------|-----------|-----------|-----------|------------|
-| LR    | —    |  7.660473 |  1.465105 |  2.767756 | — (closed-form) |
-| MLP   | 42   |  9.704269 |  1.824736 |  3.115168 | 12 |
-| MLP   | 123  |  9.378154 |  1.820981 |  3.062377 | 24 |
-| MLP   | 456  |  9.570781 |  1.807955 |  3.093668 | 11 |
-| MLP   | 789  |  9.444790 |  1.807262 |  3.073238 | 23 |
-| MLP   | 1024 |  9.336527 |  1.794262 |  3.055573 | 20 |
-| LSTM  | 42   | 12.795810 |  2.092083 |  3.577123 | 25 |
-| LSTM  | 123  | 12.807588 |  2.171723 |  3.578769 | 28 |
-| LSTM  | 456  | 13.574508 |  2.205135 |  3.684360 | 36 |
-| LSTM  | 789  | 13.020063 |  2.184277 |  3.608332 | 24 |
-| LSTM  | 1024 | 12.390662 |  2.064890 |  3.520037 | 20 |
-| TFT   | 42   | 13.843709 |  2.353622 |  3.720714 | 5 |
-| TFT   | 123  | 14.990285 |  2.366630 |  3.871729 | 14 |
-| TFT   | 456  | 13.744812 |  2.247099 |  3.707400 | 9 |
-| TFT   | 789  | 12.625386 |  2.217307 |  3.553222 | 34 |
-| TFT   | 1024 | 26.500271 |  2.938889 |  5.147841 | 1 |
-<!-- @end-include -->
+| Artifact | Role |
+|---|---|
+| `results/bachelor_safe_v2/shap_lr.csv` | Auxiliary SHAP attribution output for LR |
+| `results/bachelor_safe_v2/shap_mlp.csv` | Auxiliary SHAP attribution output for MLP |
+| `results/bachelor_safe_v2/shap_lstm.csv` | Auxiliary SHAP attribution output for LSTM |
+| `results/bachelor_safe_v2/shap_lr_cross.csv` | Auxiliary cross-model SHAP-format output for LR |
+| `results/bachelor_safe_v2/shap_mlp_cross.csv` | Auxiliary cross-model SHAP-format output for MLP |
+| `results/bachelor_safe_v2/shap_lstm_cross.csv` | Auxiliary cross-model SHAP-format output for LSTM |
+| `results/bachelor_safe_v2/tft_importance.csv` | TFT-native VSN / `interpret_output` importance |
+| `results/bachelor_safe_v2/xai_agreement_shap_vsn.csv` | Auxiliary SHAP/VSN agreement artifact |
 
-### F.2 Pairwise paired moving-block bootstrap intervals — full set
+These files may be useful for additional construct-validity discussion, but they are not used as the primary cross-model explanation evidence. The common comparison remains the occlusion-based workflow because the same perturbation protocol can be applied to all four selected model families.
 
-The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table (six pairs × three metrics) from `results/bachelor_safe_v2/bootstrap_intervals.csv` is reproduced below. All intervals are computed with `arch.bootstrap.MovingBlockBootstrap` at block length **L = 96** (= `INPUT_LEN`), `BOOTSTRAP_SEED = 2026`, and `N = 10 000` resamples.
+## Appendix E. Extended Result Tables
 
-<!-- @begin-include _generated/bootstrap_full.md -->
-| Pair (A vs B) | Metric | Mean diff (A − B) | 95 % CI low | 95 % CI high | Bootstrap N | Bootstrap seed | Block length | n_test_windows |
-|---------------|--------|--------------------|--------------|---------------|--------------|------------------|---------------|-------------------|
-| LR vs MLP | MSE | -1.303264 | -1.632323 | -0.892369 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs MLP | MAE | -0.266486 | -0.310032 | -0.208887 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs MLP | RMSE | -0.252443 | -0.305068 | -0.178764 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs LSTM | MSE | -4.413084 | -5.318296 | -3.410152 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs LSTM | MAE | -0.586847 | -0.658561 | -0.497758 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs LSTM | RMSE | -0.739074 | -0.871760 | -0.575593 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs TFT | MSE | -5.791200 | -6.741966 | -4.612476 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs TFT | MAE | -0.799158 | -0.873996 | -0.687095 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs TFT | RMSE | -0.944549 | -1.071772 | -0.767360 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs LSTM | MSE | -3.109820 | -4.178061 | -2.053014 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs LSTM | MAE | -0.320361 | -0.409885 | -0.230770 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs LSTM | RMSE | -0.486631 | -0.649627 | -0.317876 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs TFT | MSE | -4.487936 | -5.571081 | -3.289024 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs TFT | MAE | -0.532672 | -0.613125 | -0.435136 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs TFT | RMSE | -0.692106 | -0.841328 | -0.518736 | 10 000 | 2026 | 96 | 3 365 |
-| LSTM vs TFT | MSE | -1.378116 | -1.730803 | -0.885637 | 10 000 | 2026 | 96 | 3 365 |
-| LSTM vs TFT | MAE | -0.212311 | -0.256155 | -0.153113 | 10 000 | 2026 | 96 | 3 365 |
-| LSTM vs TFT | RMSE | -0.205475 | -0.264532 | -0.131254 | 10 000 | 2026 | 96 | 3 365 |
-<!-- @end-include -->
+### Tabelle E.1: Per-Seed Point Metrics in Original Scale
 
-All 18 intervals exclude zero, so the corresponding mean per-window error differences remain distinguishable at the moving-block bootstrap-CI level with block length L = 96 under the present configuration. The safety sentence continues to apply; the overlapping-sliding-window dependence is method-matched by the block variant rather than silently assumed away.
+Source: `results/bachelor_safe_v2/per_seed_metrics.csv`.
 
-**Block length sensitivity.** Table `results/bachelor_safe_v2/bootstrap_block_sensitivity.csv` reports the 95 % CI widths at L ∈ {24, 48, 96, 192} for each (pair × metric) combination. Widths remain stable across block lengths (variation well within 10 % of the headline widths), confirming that L = 96 is not a knife-edge choice; the headline moving-block intervals are robust to reasonable L perturbations.
+| Model | Seed | MSE | MAE | RMSE |
+|---|---:|---:|---:|---:|
+| LR | deterministic | 7.660473 | 1.465105 | 2.767756 |
+| MLP | 42 | 9.704269 | 1.824736 | 3.115168 |
+| MLP | 123 | 9.378154 | 1.820981 | 3.062377 |
+| MLP | 456 | 9.570781 | 1.807955 | 3.093668 |
+| MLP | 789 | 9.444790 | 1.807262 | 3.073238 |
+| MLP | 1024 | 9.336527 | 1.794262 | 3.055573 |
+| LSTM | 42 | 12.795810 | 2.092083 | 3.577123 |
+| LSTM | 123 | 12.807588 | 2.171723 | 3.578769 |
+| LSTM | 456 | 13.574508 | 2.205135 | 3.684360 |
+| LSTM | 789 | 13.020063 | 2.184277 | 3.608332 |
+| LSTM | 1024 | 12.390662 | 2.064890 | 3.520037 |
+| TFT | 42 | 13.843709 | 2.353622 | 3.720714 |
+| TFT | 123 | 14.990285 | 2.366630 | 3.871729 |
+| TFT | 456 | 13.744812 | 2.247099 | 3.707400 |
+| TFT | 789 | 12.625386 | 2.217307 | 3.553222 |
+| TFT | 1024 | 26.500271 | 2.938889 | 5.147841 |
 
-### F.3 Complexity metrics — full table
+### Tabelle E.2: Paired Moving-Block Bootstrap Intervals
 
-<!-- @begin-include _generated/complexity_table.md -->
-| Model | n_params | Architectural category | Wall-clock seconds | Hardware note |
-|-------|----------|------------------------|---------------------|----------------|
-| LR    | 113 064 | linear                 | 0.7 s               | single local machine run; bachelor-safe local-only workflow |
-| MLP   | 124 328 | shallow-MLP            | 28.6 s              | single local machine run; bachelor-safe local-only workflow |
-| LSTM  |  29 608 | recurrent              | 51.7 s              | single local machine run; bachelor-safe local-only workflow |
-| TFT   |  18 261 | transformer-family     | 2122.8 s            | single local machine run; bachelor-safe local-only workflow |
-<!-- @end-include -->
+Source: `results/bachelor_safe_v2/bootstrap_intervals.csv`. The bootstrap uses block length 96, 10,000 resamples, and seed 2026.
 
-## G. Extra SHAP / VSN Plots
+| Pair | Metric | Mean difference | 95 percent CI low | 95 percent CI high |
+|---|---|---:|---:|---:|
+| LR vs MLP | MSE | -1.303264 | -1.632323 | -0.892369 |
+| LR vs MLP | MAE | -0.266486 | -0.310032 | -0.208887 |
+| LR vs MLP | RMSE | -0.252443 | -0.305068 | -0.178764 |
+| LR vs LSTM | MSE | -4.413084 | -5.318296 | -3.410152 |
+| LR vs LSTM | MAE | -0.586847 | -0.658561 | -0.497758 |
+| LR vs LSTM | RMSE | -0.739074 | -0.871760 | -0.575593 |
+| LR vs TFT | MSE | -5.791200 | -6.741966 | -4.612476 |
+| LR vs TFT | MAE | -0.799158 | -0.873996 | -0.687095 |
+| LR vs TFT | RMSE | -0.944549 | -1.071772 | -0.767360 |
+| MLP vs LSTM | MSE | -3.109820 | -4.178061 | -2.053014 |
+| MLP vs LSTM | MAE | -0.320361 | -0.409885 | -0.230770 |
+| MLP vs LSTM | RMSE | -0.486631 | -0.649627 | -0.317876 |
+| MLP vs TFT | MSE | -4.487936 | -5.571081 | -3.289024 |
+| MLP vs TFT | MAE | -0.532672 | -0.613125 | -0.435136 |
+| MLP vs TFT | RMSE | -0.692106 | -0.841328 | -0.518736 |
+| LSTM vs TFT | MSE | -1.378116 | -1.730803 | -0.885637 |
+| LSTM vs TFT | MAE | -0.212311 | -0.256155 | -0.153113 |
+| LSTM vs TFT | RMSE | -0.205475 | -0.264532 | -0.131254 |
 
-The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations under the interpretability contract of this thesis. The dedicated input-perturbation stability layer was dropped in the archive migration (2026-04-20); stability evidence in the thesis comes from the five-seed training pipeline's seed-variance signal (§ 2.9 methodology).
+### Tabelle E.3: Operational Complexity Indicators
 
-<!-- @begin-include _generated/status_summary.md -->
-Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_5seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED**. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
-<!-- @end-include -->
+Sources: `results/bachelor_safe_v2/complexity_metrics.csv` and `results/bachelor_safe_v2/runtime_seconds.csv`.
 
-## H. Implementation Notes
-
-A small number of implementation decisions are recorded here for reuse without being load-bearing on the main argument.
-
-*Identity normaliser inside `pytorch-forecasting`.* The TFT path uses an identity normaliser inside the framework's `TimeSeriesDataSet` to avoid a double-scaling pathology that would otherwise occur because the inputs are already standardised by the shared `StandardScaler` in the data-processing component. This is the mechanism by which TFT preprocessing admissibility under the Comparability Gate clears.
-
-*Pickle-resolution fix in `export_predictions.py`.* The custom MSE class introduced in is defined at module level in `src/evaluation/export_predictions.py` so that the pickled TFT checkpoints can be unpickled successfully when loading via `load_from_checkpoint`. This is a `__main__`-vs-module namespace detail and is documented for future maintainers.
-
-*Fail-fast guard at the restore-best step.* The MLP / LSTM training paths include a guard that raises `RuntimeError` if `best_model_state` is `None` at the point of restoration; this would surface a silent training-collapse failure mode in which no validation step ever produced a finite loss. The guard never fires in the locked baseline runs and therefore does not appear in the headline output, but it is a non-trivial robustness lever and is mentioned in § 4.4.1.
-
-*Train-loss vs val-loss reporting asymmetry (cosmetic).* `train_loss` in `results/training_curves.csv` is the mean of per-batch means over the training epoch, whereas `val_loss` is computed in a single full-set pass. This is a cosmetic inconsistency in the training-curves CSV (CURVE-NOTE-01 in the audit log) that has no effect on selection or test metrics; it is recorded here so that any reuse of the training-curves CSV for subsequent diagnostic work uses the appropriate interpretation.
+| Model | Parameter count | Architectural category | Wall-clock seconds |
+|---|---:|---|---:|
+| LR | 113064 | linear | 0.672768 |
+| MLP | 124328 | shallow-MLP | 28.600817 |
+| LSTM | 29608 | recurrent | 51.653864 |
+| TFT | 18261 | transformer-family | 2122.803423 |

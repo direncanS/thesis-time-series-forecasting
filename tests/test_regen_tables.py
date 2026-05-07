@@ -1,8 +1,8 @@
 """Smoke tests for scripts/regen_tables.py.
 
 Verifies:
-  - VALIDATION_LOG.md parser recognises plain and bold status labels
-  - regen script resolves v1 archive fallback when v2 results/ is empty
+  - the static pipeline-status mapping exposes the expected scripts
+  - the regen script writes all expected fragments to docs/_generated/
   - --verify mode is a true dry-run (no disk writes)
   - fragment inlining is idempotent (sha-stable across two consecutive runs)
 """

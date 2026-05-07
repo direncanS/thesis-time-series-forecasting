@@ -299,9 +299,9 @@ def run_common_importance(
     var_names = data["var_names"]
     seeds = cfg["seeds"]
 
-    print(f"[B7a] results_dir={results_path}")
-    print(f"[B7a] n_test={data['n_test']}, n_features={len(var_names)}")
-    print(f"[B7a] seeds={seeds}")
+    print(f"[xai] results_dir={results_path}")
+    print(f"[xai] n_test={data['n_test']}, n_features={len(var_names)}")
+    print(f"[xai] seeds={seeds}")
 
     all_rows: list[dict] = []
 
@@ -347,7 +347,7 @@ def run_common_importance(
     out_df = pd.DataFrame(all_rows)
     out_csv = results_path / "occlusion_importance.csv"
     out_df.to_csv(out_csv, index=False)
-    print(f"\n[B7a] saved {out_csv} ({len(out_df)} rows)")
+    print(f"\n[xai] saved {out_csv} ({len(out_df)} rows)")
     return out_df
 
 
@@ -358,7 +358,7 @@ def run_common_importance(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="B7a — common, model-agnostic occlusion importance for all 4 core models."
+        description="common, model-agnostic occlusion importance for all 4 core models."
     )
     parser.add_argument("--config", default="configs/experiments/fair_core_v2.yaml")
     parser.add_argument("--results-dir", default=None)
