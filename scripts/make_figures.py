@@ -175,17 +175,23 @@ def fig_02_train_test_split() -> None:
         (win_start + INPUT_LEN, win_y), OUTPUT_LEN, win_h,
         facecolor="#fb9a99", edgecolor="black", linewidth=0.6,
     ))
+    label_offset = max(int(n * 0.085), INPUT_LEN * 10)
+    label_y = win_y + win_h / 2
+    arrow_kwargs = dict(arrowstyle="-", color="black", linewidth=0.6,
+                        shrinkA=0, shrinkB=2)
     ax.annotate(
         f"input window ({INPUT_LEN} h)",
-        xy=(win_start + INPUT_LEN / 2, win_y + win_h),
-        xytext=(win_start + INPUT_LEN / 2, win_y + win_h + 0.06),
-        ha="center", va="bottom", fontsize=8,
+        xy=(win_start, label_y),
+        xytext=(win_start - label_offset, label_y),
+        ha="right", va="center", fontsize=8,
+        arrowprops=arrow_kwargs,
     )
     ax.annotate(
         f"forecast horizon ({OUTPUT_LEN} h)",
-        xy=(win_start + INPUT_LEN + OUTPUT_LEN / 2, win_y + win_h),
-        xytext=(win_start + INPUT_LEN + OUTPUT_LEN / 2, win_y + win_h + 0.06),
-        ha="center", va="bottom", fontsize=8,
+        xy=(win_start + INPUT_LEN + OUTPUT_LEN, label_y),
+        xytext=(win_start + INPUT_LEN + OUTPUT_LEN + label_offset, label_y),
+        ha="left", va="center", fontsize=8,
+        arrowprops=arrow_kwargs,
     )
 
     ax.annotate(
