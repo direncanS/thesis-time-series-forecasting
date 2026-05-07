@@ -18,8 +18,8 @@ FH Technikum Wien.
 The thesis frames the artifact as a *reproducibility-supported, fairness-oriented
 evaluation pipeline for selected time-series forecasting models under
 controlled experimental conditions* — not as a single-model benchmark and
-not as a metric-table comparison. The full thesis prose is available under
-`docs/`.
+not as a metric-table comparison. The thesis text is submitted to the
+university and is not redistributed via this repository.
 
 ## Research questions
 
@@ -71,7 +71,7 @@ not as a metric-table comparison. The full thesis prose is available under
 ├── tests/                 pytest suite (unit + smoke + regression)
 ├── results/bachelor_safe_v2/   active v2 result CSVs, prediction tensors, manifest
 ├── reports/figures/main/  generated PDF + PNG figures used by the thesis
-├── docs/                  thesis prose (abstract, introduction, methodology, solution, discussion, references, appendix), env / render specs, generated table fragments
+├── docs/                  reserved for local thesis prose; not redistributed in this repository
 └── Makefile               common workflow targets
 ```
 
@@ -115,20 +115,10 @@ still runs end-to-end on CPU.
 
 ## Thesis prose
 
-The full Bachelor thesis text lives under `docs/`. The chapters can be
-read directly as Markdown:
-
-- `docs/abstract.md` — German Kurzfassung + English Abstract
-- `docs/introduction.md` — Chapter 1
-- `docs/methodology.md` — Chapter 2
-- `docs/solution.md` — Chapter 3
-- `docs/discussion.md` — Chapter 4 (interpretation, validity, conclusion, future work)
-- `docs/references.md` — Harvard-style bibliography
-- `docs/appendix.md` — hyperparameter tables, code-structure reference, reproducibility checklist, auxiliary outputs
-
-Render specifications for assembling the printable PDF (Pandoc + tectonic)
-are documented in `docs/RENDER_SPEC.md`. Environment pinning is
-documented in `docs/ENV_SPEC.md`.
+The full Bachelor thesis text is submitted to FH Technikum Wien and is
+not redistributed via this repository. The repository publishes the
+implementation, configuration, results, and figures that the thesis
+relies on.
 
 ## Citing this work
 
@@ -143,7 +133,7 @@ Bachelor thesis, FH Technikum Wien.
 The source code in this repository is released under the MIT License
 (see `pyproject.toml`). Academic source PDFs in `References/` are
 excluded from the repository for copyright reasons; the thesis cites
-each source under the Harvard author–date style in `docs/references.md`.
+each source under the Harvard author–date style.
 
 ## Caveats
 
