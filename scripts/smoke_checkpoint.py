@@ -1,9 +1,9 @@
 """
-S-11.5 Adım 4b — Import-safe checkpoint-load + forward smoke test.
+Import-safe checkpoint-load + forward smoke test.
 
 Purpose: Verify that the newly-installed env can load and forward-pass the
 existing MLP, LSTM, and TFT checkpoints without triggering any src/* top-level
-code (which would overwrite live artefacts pre-S-12 snapshot).
+code (which would overwrite live artefacts snapshot).
 
 Design:
   - MLP and LSTMModel classes redefined INLINE (bit-identical to
@@ -130,4 +130,4 @@ assert tft_params == 18261, (
 )
 print(f"[OK] TFT checkpoint load: params={tft_params}")
 
-print("\n=== S-11.5 Adım 4b SMOKE PASS ===")
+print("\n=== SMOKE PASS ===")

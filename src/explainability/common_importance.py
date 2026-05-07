@@ -1,4 +1,4 @@
-"""Common, model-agnostic occlusion importance (Closure Plan v6.1 B7a).
+"""Common, model-agnostic occlusion importance.
 
 Produces a uniform cross-model variable-importance instrument for all four
 core models (LR, MLP, LSTM, TFT). The interpretability contract of CLAUDE.md
@@ -7,7 +7,7 @@ and VSN (architecture-native, TFT-only) as the same measurement object; this
 script introduces a common instrument that *is* the same measurement object
 across all four.
 
-Role (Closure Plan v6.1 § 2 B7):
+Role:
     - Occlusion importance **is** the common explanation *instrument*.
     - AOPC (computed in `faithfulness_test.py`) is the faithfulness *metric*
       that consumes the rankings produced here.

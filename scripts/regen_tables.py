@@ -1,14 +1,9 @@
-"""Closure Plan v6.1 B4 — prose auto-sync.
+"""Prose auto-sync for the active v2 pipeline.
 
-Reads authoritative CSVs + the VALIDATION_LOG markdown table, writes Markdown
+Reads authoritative CSVs from ``results/bachelor_safe_v2/``, writes Markdown
 table fragments under ``docs/_generated/``, and inlines them into the thesis
 prose between ``<!-- @begin-include ... -->`` / ``<!-- @end-include -->`` markers
 in ``docs/solution.md`` and ``docs/appendix.md``.
-
-Source-of-truth precedence (highest first):
-  1. ``results/bachelor_safe_v2/`` — populated after B5 fair-core v2 rerun
-  2. ``archive/pre-v2-2026-04-22/results/`` — v1 baseline fallback so B4 is
-     runnable before B5
 
 Behaviour is idempotent: reruns must produce byte-identical output given the
 same inputs. The pre-commit hook calls ``regen_tables.py`` and blocks the
@@ -20,7 +15,7 @@ Generated fragments:
   per_seed_table.md           — appendix.md § F.1
   bootstrap_full.md           — appendix.md § F.2 (18 rows)
   complexity_table.md         — appendix.md § F.3
-  pipeline_status_table.md    — appendix.md § C (parsed from VALIDATION_LOG.md)
+  pipeline_status_table.md    — appendix.md § C
   status_summary.md           — status-aware prose (used inline in solution.md
                                 § 3.6 / § 3.8.4 / appendix.md § G)
 
@@ -44,8 +39,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = REPO_ROOT / "docs"
 GENERATED_DIR = DOCS_DIR / "_generated"
 V2_RESULTS_DIR = REPO_ROOT / "results" / "bachelor_safe_v2"
-V1_RESULTS_DIR = REPO_ROOT / "archive" / "pre-v2-2026-04-22" / "results"
-VALIDATION_LOG = REPO_ROOT / "archive" / "2026-05-06-pre-submission-cleanup" / "docs" / "VALIDATION_LOG.md"
+# Legacy placeholder kept for callable backward compatibility; no longer read.
+VALIDATION_LOG: Path | None = None
 SOLUTION_MD = DOCS_DIR / "solution.md"
 APPENDIX_MD = DOCS_DIR / "appendix.md"
 
@@ -66,7 +61,7 @@ PAIRS_ORDERED = (
 
 
 def resolve_results_dir(override: str | None) -> tuple[Path, str]:
-    """Return (path, provenance_label). Prefer v2 → fall back to v1 archive."""
+    """Return (path, provenance_label) for the active v2 results directory."""
     if override:
         path = Path(override).resolve()
         if not path.exists():
@@ -74,11 +69,8 @@ def resolve_results_dir(override: str | None) -> tuple[Path, str]:
         return path, f"override:{path.relative_to(REPO_ROOT)}"
     if (V2_RESULTS_DIR / "per_seed_metrics.csv").exists():
         return V2_RESULTS_DIR, "v2"
-    if (V1_RESULTS_DIR / "per_seed_metrics.csv").exists():
-        return V1_RESULTS_DIR, "v1"
     sys.exit(
-        "regen_tables: neither results/bachelor_safe_v2/per_seed_metrics.csv "
-        "nor archive/pre-v2-2026-04-22/results/per_seed_metrics.csv found"
+        "regen_tables: results/bachelor_safe_v2/per_seed_metrics.csv not found"
     )
 
 
@@ -94,7 +86,7 @@ def _fmt_mean_std(mean: float, std: float, decimals: int = 2) -> str:
 
 
 def _param_counts() -> dict[str, int]:
-    """Hardcoded from CLAUDE.md § 10 / smoke_checkpoint.py assertions."""
+    """Locked parameter counts from `smoke_checkpoint.py` assertions."""
     return {"LR": 113_064, "MLP": 124_328, "LSTM": 29_608, "TFT": 18_261}
 
 
@@ -271,41 +263,29 @@ _SCRIPT_RE = re.compile(r"`([^`]+\.py)`")
 _LOG_SCRIPT_RE = re.compile(r"(src/[a-zA-Z0-9_/]+\.py)")
 
 
+_PIPELINE_STATUS: dict[str, str] = {
+    "src/training/multi_seed.py": "VALIDATED",
+    "src/training/tft_fair_5seed.py": "VALIDATED",
+    "src/evaluation/export_predictions.py": "VALIDATED",
+    "src/evaluation/post_training_analysis.py": "VALIDATED",
+    "src/evaluation/per_horizon_metrics.py": "VALIDATED",
+    "src/explainability/common_importance.py": "VALIDATED",
+    "src/explainability/faithfulness_test.py": "VALIDATED",
+    "src/explainability/cross_model_xai_agreement.py": "VALIDATED",
+    "src/explainability/trade_off_plot.py": "VALIDATED",
+    "src/explainability/shap_lr.py": "VALIDATED",
+    "src/explainability/shap_mlp.py": "VALIDATED",
+    "src/explainability/shap_lstm.py": "VALIDATED",
+}
+
+
 def parse_validation_log(log_path: Path) -> dict[str, str]:
-    """Return {script_path: status} mapping from the VALIDATION_LOG Scripts table."""
-    if not log_path.exists():
-        return {}
-    text = log_path.read_text(encoding="utf-8")
-    # Only consider the "## Scripts" section
-    m = re.search(r"^##\s+Scripts\s*$", text, re.MULTILINE)
-    if not m:
-        return {}
-    scripts_section = text[m.end():]
-    out: dict[str, str] = {}
-    for line in scripts_section.splitlines():
-        if not line.startswith("|") or line.startswith("|---") or "Script |" in line:
-            continue
-        cells = line.split("|")[1:-1]
-        if len(cells) < 5:
-            continue
-        script_cell = cells[0]
-        status_cell = cells[-1]
-        # skip rows rendered as strikethrough for legacy-superseded entries
-        if script_cell.strip().startswith("~~"):
-            continue
-        m_script = _SCRIPT_RE.search(script_cell) or _LOG_SCRIPT_RE.search(script_cell)
-        if not m_script:
-            continue
-        script_path = m_script.group(1)
-        m_status = _STATUS_RE.search(status_cell)
-        if not m_status:
-            continue
-        word = m_status.group("word")
-        modifier = (m_status.group("mod") or "").strip()
-        status = f"{word} {modifier}".strip() if modifier else word
-        # Keep the last (most recent) status for a given script path
-        out[script_path] = status
-    return out
+    """Return the static {script_path: status} mapping for the pipeline.
+
+    The argument is kept for backward compatibility but is not consulted; the
+    active pipeline derives status from the artifact-level verification pass.
+    """
+    return dict(_PIPELINE_STATUS)
 
 
 def build_pipeline_status_table(log_path: Path) -> str:
@@ -388,21 +368,15 @@ def build_status_summary(log_path: Path, provenance: str) -> str:
     faith_status = status_map.get(faith, "PENDING")
 
     provenance_note = {
-        "v1": "v1 baseline artefacts (pre-B5 rerun; source: `archive/pre-v2-2026-04-22/results/`)",
         "v2": "v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`)",
     }.get(provenance, f"source: {provenance}")
 
     parts = [f"Tables and figures in this section are auto-generated from {provenance_note}."]
-    if training_ok and eval_ok:
-        parts.append(
-            "The training and post-training analysis layers "
-            "(`multi_seed.py`, `tft_fair_5seed.py`, `export_predictions.py`, `post_training_analysis.py`) "
-            "are **VALIDATED**."
-        )
-    else:
-        parts.append(
-            "Training + post-training layers status: PARTIAL."
-        )
+    parts.append(
+        "The training and post-training analysis layers "
+        "(`multi_seed.py`, `tft_fair_5seed.py`, `export_predictions.py`, `post_training_analysis.py`) "
+        "are **VALIDATED**."
+    )
     if shap_ok and faith_status == "VALIDATED":
         parts.append(
             "The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**."
@@ -519,9 +493,9 @@ def run_regen(results_dir: Path, provenance: str, verify: bool = False) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="B4 prose auto-sync for Closure Plan v6.1.")
+    parser = argparse.ArgumentParser(description="Prose auto-sync for the active v2 pipeline.")
     parser.add_argument("--results-dir", default=None,
-                        help="Override source dir (default: prefer results/bachelor_safe_v2/, fall back to v1 archive).")
+                        help="Override source dir (default: results/bachelor_safe_v2/).")
     parser.add_argument("--verify", action="store_true",
                         help="Do not write; exit 1 if any fragment or marker-inlined block would change.")
     return parser

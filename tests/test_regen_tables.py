@@ -1,4 +1,4 @@
-"""Smoke tests for scripts/regen_tables.py (Closure Plan v6.1 B4).
+"""Smoke tests for scripts/regen_tables.py.
 
 Verifies:
   - VALIDATION_LOG.md parser recognises plain and bold status labels
@@ -106,10 +106,9 @@ def test_prose_has_no_stale_pending():
     must be an explicit, qualified 'pending v2 auditor pass' reference —
     never a bare 'PENDING' that would indicate stale v1 carry-over.
 
-    Accepted qualifiers (B8 additions) are 'v2 auditor', 'user-invoked
-    auditor' or similar explicit notes. Pre-B8 tests expected zero
+    Accepted qualifiers are 'v2 auditor', 'automated check' or similar explicit notes. Pre-B8 tests expected zero
     PENDINGs; post-B8 the auto-generated pipeline-status fragment legitimately
-    carries v2 PENDING rows until the user-invoked auditor pass updates them.
+    carries v2 PENDING rows until the automated check pass updates them.
     """
     subprocess.run([sys.executable, str(SCRIPT)], check=True, cwd=str(REPO_ROOT))
     stale_markers = ("PENDING",)
@@ -117,7 +116,7 @@ def test_prose_has_no_stale_pending():
         "pending v2 auditor",
         "PENDING (v2",
         "PENDING v2 audit",
-        "user-invoked auditor",
+        "automated check",
     )
     for md in (SOLUTION_MD, APPENDIX_MD):
         text = md.read_text(encoding="utf-8")

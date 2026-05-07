@@ -1,4 +1,4 @@
-"""Cross-model XAI agreement (Closure Plan v6.1 B7 — occlusion primary).
+"""Cross-model XAI agreement.
 
 Purpose (RQ2 closure target)
 ----------------------------

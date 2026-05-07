@@ -1,55 +1,55 @@
 # Conda environment spec for the thesis-bachelor-safe repo.
-# Closure Plan v6.1 B3 — lite reproducibility.
+# — lite reproducibility.
 #
-# Creates the `thesis` env with Python 3.10 (per S-11.5 accepted drift from
+# Creates the `thesis` env with Python 3.10 (per accepted drift from
 # the 3.11 anchor; see docs/ENV_SPEC.md) plus the full pinned ML stack.
 #
 # Torch nightly wheel is installed via pip with the PyTorch nightly index;
 # conda's torch packages cannot reach the exact nightly build pinned below.
 #
 # Usage:
-#   conda env create -f environment.yml
-#   conda activate thesis
-#   pip install -e .                  # install this repo as a package (pyproject.toml)
-#   python -m pytest tests/ -v        # verify
+# conda env create -f environment.yml
+# conda activate thesis
+# pip install -e . # install this repo as a package (pyproject.toml)
+# python -m pytest tests/ -v # verify
 #
 # For bit-match regeneration after install, diff the fresh env's pip freeze
 # against requirements.lock:
-#   conda run -n thesis python -m pip freeze > /tmp/fresh.lock
-#   diff /tmp/fresh.lock requirements.lock
+# conda run -n thesis python -m pip freeze > /tmp/fresh.lock
+# diff /tmp/fresh.lock requirements.lock
 
 name: thesis
 
 channels:
-  - conda-forge
-  - defaults
+ - conda-forge
+ - defaults
 
 dependencies:
-  - python=3.10
-  - pandoc            # thesis render toolchain
-  - tectonic          # thesis render toolchain
-  - pip
-  - pip:
-      # Torch nightly (cu128) — pinned to the exact wheel the QG2 baseline used.
-      # If the nightly index has rotated this wheel out of retention, see
-      # docs/ENV_SPEC.md for the fallback cascade (cu121 / cu118 / cpu).
-      - --pre
-      - --extra-index-url=https://download.pytorch.org/whl/nightly/cu128
-      - torch==2.11.0.dev20260203+cu128
+ - python=3.10
+ - pandoc # thesis render toolchain
+ - tectonic # thesis render toolchain
+ - pip
+ - pip:
+ # Torch nightly (cu128) — pinned to the exact wheel the QG2 baseline used.
+ # If the nightly index has rotated this wheel out of retention, see
+ # docs/ENV_SPEC.md for the fallback cascade (cu121 / cu118 / cpu).
+ - --pre
+ - --extra-index-url=https://download.pytorch.org/whl/nightly/cu128
+ - torch==2.11.0.dev20260203+cu128
 
-      # Pinned core ML stack
-      - lightning==2.6.1
-      - pytorch-forecasting==1.6.1
-      - numpy==2.2.6
+ # Pinned core ML stack
+ - lightning==2.6.1
+ - pytorch-forecasting==1.6.1
+ - numpy==2.2.6
 
-      # Compatible ranges (not anchor-locked; must remain compatible with the pinned triad)
-      - pandas>=2.2,<3
-      - scikit-learn>=1.5,<2
-      - shap>=0.45,<1
-      - matplotlib>=3.8,<4
+ # Compatible ranges (not anchor-locked; must remain compatible with the pinned triad)
+ - pandas>=2.2,<3
+ - scikit-learn>=1.5,<2
+ - shap>=0.45,<1
+ - matplotlib>=3.8,<4
 
-      # B3 additions — required by Closure Plan v6.1 v2 pipeline
-      - pyyaml>=6          # src/common.py::load_config YAML parsing
-      - arch>=7.0          # src/evaluation/post_training_analysis.py moving-block bootstrap
-      - pytest>=8          # tests/ runner
-      - ruff>=0.5          # linter (configured via pyproject.toml::[tool.ruff])
+ # B3 additions — required by 2 pipeline
+ - pyyaml>=6 # src/common.py::load_config YAML parsing
+ - arch>=7.0 # src/evaluation/post_training_analysis.py moving-block bootstrap
+ - pytest>=8 # tests/ runner
+ - ruff>=0.5 # linter (configured via pyproject.toml::[tool.ruff])

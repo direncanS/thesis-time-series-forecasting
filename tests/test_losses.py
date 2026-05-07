@@ -1,6 +1,6 @@
 """Unit tests for src/common.py::UnifiedMSE.
 
-Closure Plan v6.1 C1 closure target: UnifiedMSE (single instance,
+C1 closure target: UnifiedMSE (single instance,
 reduction="mean" over flattened tensor) replaces v1's
 MultiLoss([MSE() for _ in range(7)]) 7×-asymmetric TFT construction.
 

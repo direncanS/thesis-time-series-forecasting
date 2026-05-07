@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "thesis-bachelor-safe"
 version = "0.1.0"
-description = "Fair-core time-series forecasting + interpretability pipeline (bachelor thesis; Closure Plan v6.1)."
+description = "Fair-core time-series forecasting + interpretability pipeline (bachelor thesis; )."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
-  { name = "Diren Cansahin", email = "direncansahin@gmail.com" }
+ { name = "Diren Cansahin", email = "direncansahin@gmail.com" }
 ]
 
 [tool.setuptools.packages.find]
@@ -22,11 +22,11 @@ exclude = ["archive*", "docs*", "configs*", "results*", "checkpoints*", "lightni
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = [
-  "-ra",
-  "--strict-markers",
+ "-ra",
+ "--strict-markers",
 ]
 markers = [
-  "slow: tests that exercise real training / GPU paths (> ~30s)",
+ "slow: tests that exercise real training / GPU paths (> ~30s)",
 ]
 
 [tool.ruff]
@@ -38,9 +38,9 @@ extend-exclude = ["archive", "lightning_logs", "results", "checkpoints", "Refere
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
 ignore = [
-  "E501",   # line length handled by formatter
-  "E741",   # ambiguous var names like `l` (common in ML code)
-  "B008",   # function call in default arg (torch common pattern)
+ "E501", # line length handled by formatter
+ "E741", # ambiguous var names like `l` (common in ML code)
+ "B008", # function call in default arg (torch common pattern)
 ]
 
 [tool.ruff.lint.per-file-ignores]

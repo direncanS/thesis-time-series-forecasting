@@ -1,4 +1,4 @@
-# Shared defaults for all Closure Plan v6.1 experiments.
+# Shared defaults for all .
 # Mirrors src/common.py::DEFAULT_CONFIG. This file is the documentation-level
 # restatement so the fair-core v2 contract is visible without reading source.
 # Experiments can reduce their own YAML to `extends: ../base.yaml` + overrides.
@@ -14,7 +14,7 @@ batch_size: 64
 max_epochs: 200
 patience: 10
 
-# 5 seeds (Closure Plan v6.1 C4 partial closure — bachelor-safe defensible)
+# 5 seeds
 seeds: [42, 123, 456, 789, 1024]
 
 # B5 output locations (v1 under archive/pre-v2-2026-04-22/)
@@ -25,27 +25,27 @@ checkpoints_dir: checkpoints/bachelor_safe_v2
 # LR (closed-form OLS) is deterministic-baseline-exempt per CLAUDE.md § 11A item 9.
 # Applied by src/common.py::configure_stochastic_runtime.
 precision:
-  matmul: highest
-  tf32_matmul: false
-  tf32_cudnn: false
-  cudnn_deterministic: true
-  cudnn_benchmark: false
+ matmul: highest
+ tf32_matmul: false
+ tf32_cudnn: false
+ cudnn_deterministic: true
+ cudnn_benchmark: false
 
 # Per-model hyperparameters (CLAUDE.md § 10 locked defaults).
 models:
-  mlp:
-    hidden_size: 128
-    learning_rate: 0.0001
-    weight_decay: 0.0
-  lstm:
-    hidden_size: 64
-    num_layers: 1
-    learning_rate: 0.0001
-    weight_decay: 0.0
-  tft:
-    hidden_size: 16
-    attention_head_size: 4
-    dropout: 0.1
-    hidden_continuous_size: 8
-    learning_rate: 0.001
-    weight_decay: 0.0
+ mlp:
+ hidden_size: 128
+ learning_rate: 0.0001
+ weight_decay: 0.0
+ lstm:
+ hidden_size: 64
+ num_layers: 1
+ learning_rate: 0.0001
+ weight_decay: 0.0
+ tft:
+ hidden_size: 16
+ attention_head_size: 4
+ dropout: 0.1
+ hidden_continuous_size: 8
+ learning_rate: 0.001
+ weight_decay: 0.0

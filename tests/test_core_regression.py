@@ -5,7 +5,7 @@ common.py preprocessing pipeline, reproduce the pre-refactor (v1) prediction
 tensors within tolerance when loaded against the v1 checkpoints archived under
 ``archive/pre-v2-2026-04-22/``.
 
-Closure Plan v6.1 B2 acceptance — per-file tolerances:
+acceptance — per-file tolerances:
     - CPU-deterministic paths (LR closed-form): exact match (atol=0, rtol=0)
     - GPU / FP32 numerical paths (MLP, LSTM forward): rtol=1e-6, atol=1e-8
 

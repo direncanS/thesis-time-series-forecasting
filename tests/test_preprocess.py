@@ -1,6 +1,6 @@
 """Unit tests for src/common.py preprocessing helpers.
 
-Closes the behavioural-equivalence audit items B2 session log 2026-04-22:
+Closes the behavioural-equivalence audit items earlier audit pass:
 tensor shape / scaler fit noktası / split sırası.
 """
 

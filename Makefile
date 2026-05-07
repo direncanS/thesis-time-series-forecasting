@@ -1,40 +1,40 @@
-# Bachelor-safe Makefile. Closure Plan v6.1 B3 deliverable.
+# Bachelor-safe Makefile. deliverable.
 #
 # Assumes the `thesis` conda env is active. If PATH drift on Windows
 # PowerShell leaves `python` pointing at the base env, override:
 #
-#   make test PYTHON="C:/Users/diren/miniconda3/envs/thesis/python.exe"
+# make test PYTHON="C:/Users/diren/miniconda3/envs/thesis/python.exe"
 #
 # Default config points at configs/experiments/fair_core_v2.yaml; override:
 #
-#   make train CONFIG=configs/experiments/other.yaml
+# make train CONFIG=configs/experiments/other.yaml
 
 PYTHON ?= python
 CONFIG ?= configs/experiments/fair_core_v2.yaml
 
 .PHONY: help test lint smoke \
-        train train-core train-tft \
-        analyze export-preds per-horizon bootstrap \
-        tables tables-verify \
-        verify-core verify-full \
-        all clean
+ train train-core train-tft \
+ analyze export-preds per-horizon bootstrap \
+ tables tables-verify \
+ verify-core verify-full \
+ all clean
 
 help:
-	@echo "Bachelor-safe Makefile (Closure Plan v6.1)"
-	@echo "  test          pytest tests/ (unit + regression)"
-	@echo "  lint          ruff check src tests scripts"
-	@echo "  smoke         lightweight unit + smoke suite"
-	@echo "  train-core    LR/MLP/LSTM training → results/bachelor_safe_v2/"
-	@echo "  train-tft     TFT training"
-	@echo "  train         train-core + train-tft"
-	@echo "  export-preds  frozen prediction tensors (.npy) for downstream analysis"
-	@echo "  per-horizon   per-horizon metrics CSV"
-	@echo "  bootstrap     moving-block paired bootstrap + sensitivity table"
-	@echo "  analyze       export-preds + per-horizon + bootstrap"
-	@echo "  verify-core   artifact-level verification for primary v2 pipeline"
-	@echo "  verify-full   verify-core + bounded auxiliary SHAP artifacts"
-	@echo "  all           train + analyze + test"
-	@echo "  clean         remove __pycache__ / .pytest_cache / .ruff_cache"
+	@echo "Bachelor-safe Makefile"
+	@echo " test pytest tests/ (unit + regression)"
+	@echo " lint ruff check src tests scripts"
+	@echo " smoke lightweight unit + smoke suite"
+	@echo " train-core LR/MLP/LSTM training → results/bachelor_safe_v2/"
+	@echo " train-tft TFT training"
+	@echo " train train-core + train-tft"
+	@echo " export-preds frozen prediction tensors (.npy) for downstream analysis"
+	@echo " per-horizon per-horizon metrics CSV"
+	@echo " bootstrap moving-block paired bootstrap + sensitivity table"
+	@echo " analyze export-preds + per-horizon + bootstrap"
+	@echo " verify-core artifact-level verification for primary v2 pipeline"
+	@echo " verify-full verify-core + bounded auxiliary SHAP artifacts"
+	@echo " all train + analyze + test"
+	@echo " clean remove __pycache__ / .pytest_cache / .ruff_cache"
 
 test:
 	$(PYTHON) -m pytest tests/ -v

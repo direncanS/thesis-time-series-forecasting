@@ -1,8 +1,8 @@
 # ENV_SPEC
 
-Environment lock spec for the thesis reproducibility chain. Established in session **S-11.5** (2026-04-20).
+Environment lock spec for the thesis reproducibility chain. Established originally (2026-04-20).
 
-## Gate A decision (2026-04-20 S-11.5)
+## Gate A decision (2026-04-20)
 
 - **Path:** Preferred (manifest anchor).
 - **Python:** 3.11
@@ -41,7 +41,7 @@ nvidia-smi
 
 # 2) Install torch nightly cu128 (separate command — not on PyPI default index)
 conda run -n thesis python -m pip install --pre torch==2.11.0.dev20260203+cu128 `
-  --index-url https://download.pytorch.org/whl/nightly/cu128
+ --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # 3) Install remaining packages from requirements.txt
 conda run -n thesis python -m pip install -r requirements.txt
@@ -75,11 +75,11 @@ Log the chosen path below under "Install log".
 
 ```powershell
 conda run -n thesis python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.version.cuda)"
-# Expected: 2.11.0.dev20260203+cu128  True  12.8
+# Expected: 2.11.0.dev20260203+cu128 True 12.8
 
 conda run -n thesis python -c "import numpy, pandas, sklearn, shap, pytorch_forecasting, lightning, matplotlib; print('3rd-party imports ok')"
 conda run -n thesis python -c "import pytorch_forecasting, lightning, numpy; print('pf', pytorch_forecasting.__version__, 'lightning', lightning.__version__, 'numpy', numpy.__version__)"
-# Expected: pf 1.6.1  lightning 2.6.1  numpy 2.2.6
+# Expected: pf 1.6.1 lightning 2.6.1 numpy 2.2.6
 
 conda run -n thesis python scripts/smoke_checkpoint.py
 # Expected: 3 PASS lines (MLP 124,328 / LSTM 29,608 / TFT 18,261 param counts)
@@ -92,7 +92,7 @@ conda run -n thesis python scripts/smoke_checkpoint.py
 - `scripts/smoke_checkpoint.py` PASS (shape + finite + param counts are env-agnostic).
 - Fallback path chosen + rationale logged below.
 
-## Install log (S-11.5 execution 2026-04-20)
+## Install log (2026-04-20)
 
 - **Date:** 2026-04-20
 - **Chosen path:** preferred — env `thesis` already existed with matching core stack.
@@ -103,14 +103,14 @@ conda run -n thesis python scripts/smoke_checkpoint.py
 - **Other anchor packages:** lightning 2.6.1 ✓, pytorch-forecasting 1.6.1 ✓, numpy 2.2.6 ✓
 - **Compatible ranges (accepted):** pandas 2.3.3, sklearn 1.7.2, shap 0.49.1, matplotlib 3.10.8 — all within `requirements.txt` compatible ranges.
 - **Smoke checkpoint PASS:** 3/3 — MLP (124,328 params + shape (1,168) + finite), LSTM (29,608 params + shape (1,168) + finite), TFT (18,261 params). Warnings cosmetic (triton flop counter, lightning save_hyperparameters on loss/logging_metrics).
-- **Render toolchain:** pandoc + tectonic installed via `conda install -n thesis -c conda-forge pandoc tectonic -y` (S-11.5 Adım 5); render smoke PASS (`docs/_smoke_render.pdf` 28 KB produced).
+- **Render toolchain:** pandoc + tectonic installed via `conda install -n thesis -c conda-forge pandoc tectonic -y` ; render smoke PASS (`docs/_smoke_render.pdf` 28 KB produced).
 - **Notes:** Install steps A/B (torch nightly + requirements.txt) were unnecessary — env `thesis` pre-existed fully configured (probably from the session that produced the VALIDATED baselines). Python 3.10.19 vs 3.11 manifest drift logged; no action required (core stack bit-equivalent).
 
-## Gate B update (2026-04-22 — Closure Plan v6.1 B3 lite reproducibility)
+## Gate B update (2026-04-22 — lite reproducibility)
 
-- **Status:** Conda env `thesis` formally extended from S-11.5 to cover B3 artefacts (config + tests + lite lock).
+- **Status:** Conda env `thesis` formally extended from earlier to cover B3 artefacts (config + tests + lite lock).
 - **New top-level files:** `environment.yml` (conda env spec + pip nightly wheel), `requirements.lock` (full `pip freeze` output, 200 lines), `pyproject.toml` (setuptools + pytest + ruff config), `Makefile` (PowerShell-safe targets).
-- **Python version accepted:** 3.13.11 observed on 2026-04-22 (S-11.5 logged 3.10.19; user re-created env with 3.13). Core stack packages still bit-match S-11.5 anchors. Drift documented; no recreation.
+- **Python version accepted:** 3.13.11 observed on 2026-04-22 (logged 3.10.19; user re-created env with 3.13). Core stack packages still bit-match anchors. Drift documented; no recreation.
 - **B3 additions (pinned in `requirements.lock` after `pip install`):**
 
 | Package | Installed version | Purpose |
@@ -122,18 +122,18 @@ conda run -n thesis python scripts/smoke_checkpoint.py
 | statsmodels | 0.14.6 | `arch` transitive dependency |
 | patsy | 1.0.2 | `arch` transitive dependency |
 
-- **Bachelor-safe scope — NOT included (Closure Plan v6.1 § 3 hard cuts):**
-  - Dockerfile (cross-machine container)
-  - GitHub Actions CI (hosted runners offer no GPU)
-  - Second-machine / self-hosted GPU witness protocol
-  - `pre-commit` framework (kept minimal; `.pre-commit-config.yaml` placeholder only)
+- **Bachelor-safe scope — NOT included:**
+ - Dockerfile (cross-machine container)
+ - GitHub Actions CI (hosted runners offer no GPU)
+ - Second-machine / self-hosted GPU witness protocol
+ - `pre-commit` framework (kept minimal; `.pre-commit-config.yaml` placeholder only)
 
 - **Fresh-checkout setup:**
-  ```powershell
-  conda env create -f environment.yml
-  conda activate thesis
-  pip install -e .
-  python -m pytest tests/ -v        # must show 7+ PASS
-  ```
+ ```powershell
+ conda env create -f environment.yml
+ conda activate thesis
+ pip install -e .
+ python -m pytest tests/ -v # must show 7+ PASS
+ ```
 
 - **Verification (2026-04-22 B3 close):** `pytest tests/` run under `thesis` env → all B2 regression + B3 unit + smoke tests PASS; `ruff check src tests scripts` → 0 errors (or documented via `[tool.ruff.lint.per-file-ignores]`).

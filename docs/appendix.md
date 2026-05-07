@@ -100,22 +100,22 @@ The following plot artefacts are produced by the pipeline and are referenced in 
 - Per-seed validation-loss training curves for MLP and LSTM (`results/training_curves.csv`).
 - Per-seed validation-loss training curves for TFT (`results/tft_training_curves.csv`).
 
-Combined-overlay plots were previously planned via `src/utils/prediction_vis_combined.py`, which was dropped from the pipeline on 2026-04-20 (S-11 archive migration; the script assumed an OT-only TFT target inconsistent with the locked implementation defaults). The thesis therefore does not include rendered combined-overlay plots; source CSVs above remain the per-model reference.
+Combined-overlay plots were previously planned via `src/utils/prediction_vis_combined.py`, which was dropped from the pipeline on 2026-04-20 (archive migration; the script assumed an OT-only TFT target inconsistent with the locked implementation defaults). The thesis therefore does not include rendered combined-overlay plots; source CSVs above remain the per-model reference.
 
 ## C. Code Structure Reference
 
 The mapping below relates the conceptual components of § 3.2 to the implementation files in `src/` and the artefacts in `results/` and `checkpoints/`. This is the only place in the thesis where file names appear (§ 5; main text is component-level).
 
-The `src/` tree is organised by concern into four subfolders (S-09c refactor 2026-04-20):
+The `src/` tree is organised by concern into four subfolders (refactor 2026-04-20):
 
 ```
 src/
-├── training/         core-model training paths
-├── evaluation/       prediction export + post-training analysis + per-horizon metrics
-└── explainability/   SHAP + faithfulness + cross-model agreement + trade-off plot
+├── training/ core-model training paths
+├── evaluation/ prediction export + post-training analysis + per-horizon metrics
+└── explainability/ SHAP + faithfulness + cross-model agreement + trade-off plot
 ```
 
-(`src/utils/` now holds only a package-marker `__init__.py` after the S-11 archive migration 2026-04-20: its prior inhabitants — `verify_reproducibility.py`, `eval_original_scale.py`, `prediction_vis_combined.py` — all assumed an OT-only TFT regime inconsistent with the fair-core configuration and were moved to `archive/superseded_src/`.)
+(`src/utils/` now holds only a package-marker `__init__.py` after the archive migration 2026-04-20: its prior inhabitants — `verify_reproducibility.py`, `eval_original_scale.py`, `prediction_vis_combined.py` — all assumed an OT-only TFT regime inconsistent with the fair-core configuration and were moved to `archive/superseded_src/`.)
 
 <!-- @begin-include _generated/pipeline_status_table.md -->
 | Conceptual component | File(s) | Status | Output artefact(s) |
@@ -141,7 +141,7 @@ The pipeline does not use external configuration files. All run-time constants a
 
 ## E. Reproducibility Verification — Tier 1 vs Tier 2
 
-The checklist below describes the reproducibility evidence the thesis relies on. A dedicated automation script was prototyped (`src/utils/verify_reproducibility.py`) but was dropped on 2026-04-20 during the S-11 archive migration because it reconstructed TFT under the OT-only + future-covariates regime (inconsistent with the fair-core configuration) and re-trained the model inside the check rather than loading the authoritative `checkpoints/tft_seed*.ckpt`. A fair-core replacement (checkpoint-load witness only; no re-train) is future work. Until then, the individual checks listed below are verified *ad hoc* from the current artefacts in `results/` + `checkpoints/`.
+The checklist below describes the reproducibility evidence the thesis relies on. A dedicated automation script was prototyped (`src/utils/verify_reproducibility.py`) but was dropped on 2026-04-20 during the archive migration because it reconstructed TFT under the OT-only + future-covariates regime (inconsistent with the fair-core configuration) and re-trained the model inside the check rather than loading the authoritative `checkpoints/tft_seed*.ckpt`. A fair-core replacement (checkpoint-load witness only; no re-train) is future work. Until then, the individual checks listed below are verified *ad hoc* from the current artefacts in `results/` + `checkpoints/`.
 
 | ID | Check | Tier |
 |----|-------|------|
@@ -230,7 +230,7 @@ All 18 intervals exclude zero, so the corresponding mean per-window error differ
 
 ## G. Extra SHAP / VSN Plots
 
-The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations under the interpretability contract of this thesis. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the five-seed training pipeline's seed-variance signal (§ 2.9 methodology).
+The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations under the interpretability contract of this thesis. The dedicated input-perturbation stability layer was dropped in the archive migration (2026-04-20); stability evidence in the thesis comes from the five-seed training pipeline's seed-variance signal (§ 2.9 methodology).
 
 <!-- @begin-include _generated/status_summary.md -->
 Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_5seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED**. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
@@ -242,7 +242,7 @@ A small number of implementation decisions are recorded here for reuse without b
 
 *Identity normaliser inside `pytorch-forecasting`.* The TFT path uses an identity normaliser inside the framework's `TimeSeriesDataSet` to avoid a double-scaling pathology that would otherwise occur because the inputs are already standardised by the shared `StandardScaler` in the data-processing component. This is the mechanism by which TFT preprocessing admissibility under the Comparability Gate clears.
 
-*Pickle-resolution fix in `export_predictions.py`.* The custom MSE class introduced in S-02b is defined at module level in `src/evaluation/export_predictions.py` so that the pickled TFT checkpoints can be unpickled successfully when loading via `load_from_checkpoint`. This is a `__main__`-vs-module namespace detail and is documented for future maintainers.
+*Pickle-resolution fix in `export_predictions.py`.* The custom MSE class introduced in is defined at module level in `src/evaluation/export_predictions.py` so that the pickled TFT checkpoints can be unpickled successfully when loading via `load_from_checkpoint`. This is a `__main__`-vs-module namespace detail and is documented for future maintainers.
 
 *Fail-fast guard at the restore-best step.* The MLP / LSTM training paths include a guard that raises `RuntimeError` if `best_model_state` is `None` at the point of restoration; this would surface a silent training-collapse failure mode in which no validation step ever produced a finite loss. The guard never fires in the locked baseline runs and therefore does not appear in the headline output, but it is a non-trivial robustness lever and is mentioned in § 4.4.1.
 

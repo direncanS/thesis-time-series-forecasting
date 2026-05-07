@@ -81,7 +81,7 @@ def test_results_dir_override():
 )
 def test_refactored_modules_import_without_side_effects(module_name):
     """Every script in the refactored tree must be side-effect-free on import.
-    (Closure Plan v6.1 B2 C10 acceptance — if __name__ == '__main__' guard coverage.)
+   
     """
     mod = importlib.import_module(module_name)
     assert mod is not None

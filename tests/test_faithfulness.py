@@ -1,4 +1,4 @@
-"""Unit tests for src.explainability.faithfulness_test (Closure Plan v6.1 B7b).
+"""Unit tests for src.explainability.faithfulness_test.
 
 AOPC primitive-level checks. The full GPU-involving AOPC run is exercised
 by the user via ``python src/explainability/faithfulness_test.py``.

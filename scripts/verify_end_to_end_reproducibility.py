@@ -1,6 +1,6 @@
 """Artifact-level reproducibility verification for the active fair-core v2 pipeline.
 
-Closure Plan v6.1 / B5 fair-core v2 artifact contract.
+Active v2 artifact contract.
 
 Modes:
   --mode core    verify the primary active v2 artifact set from existing outputs.

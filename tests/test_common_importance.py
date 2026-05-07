@@ -1,4 +1,4 @@
-"""Unit tests for src.explainability.common_importance (Closure Plan v6.1 B7a).
+"""Unit tests for src.explainability.common_importance.
 
 These are lightweight primitive-level checks. The full GPU-involving
 occlusion run is exercised by the user via

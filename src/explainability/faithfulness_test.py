@@ -1,4 +1,4 @@
-"""AOPC continuous faithfulness over occlusion ranks (Closure Plan v6.1 B7b).
+"""AOPC continuous faithfulness over occlusion ranks.
 
 Purpose (RQ2/RQ3 closure target)
 --------------------------------
@@ -8,7 +8,7 @@ Consumes the common occlusion ranks produced by
 Area Over Perturbation Curve (AOPC; Samek et al., 2017 — time-series
 adaptation).
 
-Role separation (Closure Plan v6.1 § 2)
+Role separation
 ---------------------------------------
 - **Occlusion importance** = the common explanation *instrument*
   (produced by ``common_importance.py``; per-(model, seed, variable) rank
