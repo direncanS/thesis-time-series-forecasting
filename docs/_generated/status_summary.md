@@ -1,1 +1,0 @@
-Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_5seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED**. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
