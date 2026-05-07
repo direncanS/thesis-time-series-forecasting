@@ -52,4 +52,4 @@ ignore = [
 # upstream contract). Revisit after B7/B8 rewrites.
 "src/explainability/*.py" = ["B905", "B007"]
 "src/evaluation/post_training_analysis.py" = ["B905", "B007"]
-"src/training/tft_fair_3seed.py" = ["B905"]
+"src/training/tft_fair_5seed.py" = ["B905"]

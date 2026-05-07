@@ -37,7 +37,7 @@ dependencies:
       - --extra-index-url=https://download.pytorch.org/whl/nightly/cu128
       - torch==2.11.0.dev20260203+cu128
 
-      # Pinned core ML stack (anchor source: docs/EXPERIMENT_MANIFEST.md)
+      # Pinned core ML stack
       - lightning==2.6.1
       - pytorch-forecasting==1.6.1
       - numpy==2.2.6

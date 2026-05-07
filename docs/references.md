@@ -1,6 +1,6 @@
 # References
 
-<!-- Harvard author–date style (CLAUDE.md § 22, locked 2026-04-18). -->
+<!-- Harvard author–date style (locked 2026-04-18). -->
 <!-- This section lists works cited in the main body (Methodology, Solution, Discussion). -->
 <!-- Inventory in `References/` folder may exceed this list; entries below are limited to those actively cited. -->
 
@@ -9,6 +9,10 @@ Lim, B., Arık, S.Ö., Loeff, N. and Pfister, T. (2021) 'Temporal fusion transfo
 Lundberg, S.M. and Lee, S.-I. (2017) 'A unified approach to interpreting model predictions', in *Advances in Neural Information Processing Systems 30 (NIPS 2017)*. Long Beach, CA: Curran Associates, pp. 4765–4774.
 
 Ouyang, J., Ravier, P. and Jabloun, M. (2022) 'Are deep learning models practically good as promised? A strategic comparison of deep learning models for time series forecasting', in *2022 30th European Signal Processing Conference (EUSIPCO)*. Belgrade, Serbia: IEEE, pp. 1697–1701.
+
+Politis, D.N. and White, H. (2004) 'Automatic block-length selection for the dependent bootstrap', *Econometric Reviews*, 23(1), pp. 53–70.
+
+Samek, W., Binder, A., Montavon, G., Lapuschkin, S. and Müller, K.-R. (2017) 'Evaluating the visualization of what a deep neural network has learned', *IEEE Transactions on Neural Networks and Learning Systems*, 28(11), pp. 2660–2673.
 
 Yeh, C.-K., Hsieh, C.-Y., Suggala, A.S., Inouye, D.I. and Ravikumar, P. (2019) 'On the (in)fidelity and sensitivity of explanations', in *Advances in Neural Information Processing Systems 32 (NeurIPS 2019)*. Vancouver, Canada: Curran Associates, pp. 10967–10978.
 

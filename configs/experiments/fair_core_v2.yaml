@@ -14,7 +14,7 @@
 #
 # Execute:
 #   python src/training/multi_seed.py     --config configs/experiments/fair_core_v2.yaml
-#   python src/training/tft_fair_3seed.py --config configs/experiments/fair_core_v2.yaml
+#   python src/training/tft_fair_5seed.py --config configs/experiments/fair_core_v2.yaml
 #   python src/evaluation/export_predictions.py   --config configs/experiments/fair_core_v2.yaml
 #   python src/evaluation/post_training_analysis.py --config configs/experiments/fair_core_v2.yaml
 #   python src/evaluation/per_horizon_metrics.py  --config configs/experiments/fair_core_v2.yaml

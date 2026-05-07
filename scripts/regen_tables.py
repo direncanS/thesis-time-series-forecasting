@@ -45,7 +45,7 @@ DOCS_DIR = REPO_ROOT / "docs"
 GENERATED_DIR = DOCS_DIR / "_generated"
 V2_RESULTS_DIR = REPO_ROOT / "results" / "bachelor_safe_v2"
 V1_RESULTS_DIR = REPO_ROOT / "archive" / "pre-v2-2026-04-22" / "results"
-VALIDATION_LOG = DOCS_DIR / "VALIDATION_LOG.md"
+VALIDATION_LOG = REPO_ROOT / "archive" / "2026-05-06-pre-submission-cleanup" / "docs" / "VALIDATION_LOG.md"
 SOLUTION_MD = DOCS_DIR / "solution.md"
 APPENDIX_MD = DOCS_DIR / "appendix.md"
 
@@ -313,7 +313,7 @@ def build_pipeline_status_table(log_path: Path) -> str:
     # Conceptual rows from solution.md § C; status derived from log where available.
     rows: list[tuple[str, str, str]] = [
         ("Data processing",
-         "`src/training/multi_seed.py`; `src/training/tft_fair_3seed.py`",
+         "`src/training/multi_seed.py`; `src/training/tft_fair_5seed.py`",
          "scaled tensors in memory"),
         ("LR training path",
          "`src/training/multi_seed.py` (LR pathway)",
@@ -325,7 +325,7 @@ def build_pipeline_status_table(log_path: Path) -> str:
          "`src/training/multi_seed.py` (LSTM pathway)",
          "`results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed*.pt`"),
         ("TFT training path",
-         "`src/training/tft_fair_3seed.py`",
+         "`src/training/tft_fair_5seed.py`",
          "`results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed*.ckpt`"),
         ("Prediction export",
          "`src/evaluation/export_predictions.py`",
@@ -337,7 +337,7 @@ def build_pipeline_status_table(log_path: Path) -> str:
          "`src/explainability/shap_lr.py`; `src/explainability/shap_mlp.py`; `src/explainability/shap_lstm.py`",
          "`results/shap_{lr,mlp,lstm}.csv`"),
         ("Explainability — VSN",
-         "`src/training/tft_fair_3seed.py` (TFT VSN extraction)",
+         "`src/training/tft_fair_5seed.py` (TFT VSN extraction)",
          "`results/tft_importance.csv`"),
         ("Faithfulness layer",
          "`src/explainability/faithfulness_test.py`",
@@ -374,7 +374,7 @@ def build_pipeline_status_table(log_path: Path) -> str:
 
 def build_status_summary(log_path: Path, provenance: str) -> str:
     status_map = parse_validation_log(log_path)
-    core_training = ["src/training/multi_seed.py", "src/training/tft_fair_3seed.py"]
+    core_training = ["src/training/multi_seed.py", "src/training/tft_fair_5seed.py"]
     eval_layer = ["src/evaluation/export_predictions.py", "src/evaluation/post_training_analysis.py"]
     shap_layer = ["src/explainability/shap_lr.py", "src/explainability/shap_mlp.py", "src/explainability/shap_lstm.py"]
     faith = "src/explainability/faithfulness_test.py"
@@ -396,12 +396,12 @@ def build_status_summary(log_path: Path, provenance: str) -> str:
     if training_ok and eval_ok:
         parts.append(
             "The training and post-training analysis layers "
-            "(`multi_seed.py`, `tft_fair_3seed.py`, `export_predictions.py`, `post_training_analysis.py`) "
-            "are **VALIDATED** in `docs/VALIDATION_LOG.md`."
+            "(`multi_seed.py`, `tft_fair_5seed.py`, `export_predictions.py`, `post_training_analysis.py`) "
+            "are **VALIDATED**."
         )
     else:
         parts.append(
-            "Training + post-training layers status: see `docs/VALIDATION_LOG.md`."
+            "Training + post-training layers status: PARTIAL."
         )
     if shap_ok and faith_status == "VALIDATED":
         parts.append(

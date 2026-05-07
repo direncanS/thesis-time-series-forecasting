@@ -1,6 +1,6 @@
 # ENV_SPEC
 
-Environment lock spec for the thesis reproducibility chain. Established in session **S-11.5** (2026-04-20). Anchor source: `docs/EXPERIMENT_MANIFEST.md:133`.
+Environment lock spec for the thesis reproducibility chain. Established in session **S-11.5** (2026-04-20).
 
 ## Gate A decision (2026-04-20 S-11.5)
 

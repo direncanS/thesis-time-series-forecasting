@@ -36,7 +36,7 @@ from pytorch_forecasting.metrics import MultiHorizonMetric
 
 # ============================================================
 # Module-level MSE — required for pickle `__main__.MSE` resolution
-# when loading TFT checkpoints saved by tft_fair_3seed.py.
+# when loading TFT checkpoints saved by tft_fair_5seed.py.
 # Byte-equivalent to src/evaluation/export_predictions.py:45-54.
 # ============================================================
 class MSE(MultiHorizonMetric):

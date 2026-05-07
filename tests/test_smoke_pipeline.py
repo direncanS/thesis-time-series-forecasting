@@ -73,7 +73,7 @@ def test_results_dir_override():
     [
         "src.common",
         "src.training.multi_seed",
-        "src.training.tft_fair_3seed",
+        "src.training.tft_fair_5seed",
         "src.evaluation.export_predictions",
         "src.evaluation.per_horizon_metrics",
         "src.evaluation.post_training_analysis",

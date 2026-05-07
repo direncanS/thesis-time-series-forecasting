@@ -1,7 +1,23 @@
+# Kurzfassung
+
+Diese Bachelorarbeit untersucht Vorhersageleistung und Interpretierbarkeit ausgewählter Zeitreihenvorhersagemodelle unter kontrollierten experimentellen Bedingungen. Ausgangspunkt ist die Beobachtung, dass Modellvergleiche im Bereich der Zeitreihenvorhersage durch unterschiedliche Datenaufbereitung, Zieldefinitionen, Horizontlängen oder Erklärbarkeitsverfahren beeinflusst werden können. Ziel der Arbeit ist daher nicht ein isolierter Benchmark eines einzelnen Modells, sondern die Entwicklung und Auswertung einer reproduzierbarkeitsunterstützten Evaluationspipeline. Der Eigenanteil dieser Arbeit besteht im Entwurf, in der Implementierung, Validierung und Analyse einer reproduzierbarkeitsunterstützten Evaluationspipeline zum Vergleich ausgewählter Zeitreihenvorhersagemodelle unter identischen experimentellen Bedingungen.
+
+Die Pipeline wird auf dem ETTh1-Datensatz angewandt, einem stündlichen multivariaten Benchmark mit sieben numerischen Variablen. Verglichen werden Linear Regression (LR), ein multilayer perceptron (MLP), ein LSTM-Modell und ein Temporal Fusion Transformer (TFT). Alle Modelle verwenden denselben chronologischen 60/20/20-Split, eine nur auf den Trainingsdaten angepasste Standardisierung, ein 96-Stunden-Eingabefenster und einen direkten 24-Stunden-Mehrschritt-Vorhersagehorizont. Die final berichteten Metriken werden im Originalmaßstab ausgewertet; diagnostische skalierte Metriken bleiben als Artefakte erhalten. Interpretierbarkeit wird primär über okklusionsbasierte Wichtigkeit, AOPC und Rangübereinstimmung operationalisiert. SHAP-Ausgaben für LR, MLP und LSTM sowie VSN- bzw. interpret_output-Wichtigkeiten für TFT werden nur als ergänzende, methodenspezifische Erklärungsartefakte behandelt.
+
+Unter dem definierten ETTh1-Setup erzielte die deterministische LR-Baseline die niedrigsten Fehlerwerte unter den ausgewählten Modellen, während die neuronalen Modelle modell- und seedabhängige Unterschiede zeigten. Die Erklärbarkeitsauswertung beschreibt keine physikalischen Wirkzusammenhänge, sondern modellbezogene Unterschiede in okklusionsbasierter Wichtigkeit, AOPC und Rangübereinstimmung. Die Ergebnisse stützen eine vorsichtige Diskussion über Leistung, Interpretierbarkeit und Komplexität innerhalb dieses konkreten Versuchsaufbaus. Die Reproduzierbarkeit wird als automatisierte Artefaktprüfung beschrieben, nicht als allgemeine Garantie maschinenübergreifender Rechenergebnisse.
+
+# Schlagwörter
+
+Zeitreihenvorhersage, fairer Modellvergleich, okklusionsbasierte Erklärbarkeit, AOPC, Reproduzierbarkeit
+
 # Abstract
 
-<!-- Student writes this section. thesis-coach provides keyword bullets on request. -->
-<!-- Rule 10: Claude never writes sentences here. -->
+This bachelor thesis investigates predictive performance and interpretability of selected time-series forecasting models under controlled experimental conditions. The motivation is that forecasting comparisons can be distorted when models are evaluated with different preprocessing choices, target definitions, horizons, tuning assumptions, or explanation methods. The thesis develops and analyses a reproducibility-supported evaluation pipeline that compares selected time-series forecasting models under identical experimental conditions.
 
-<!-- Suggested length: 150-250 words, one paragraph. -->
-<!-- Should cover: problem, artifact, main findings, limitations in one compressed pass. -->
+The pipeline is applied to the ETTh1 dataset, an hourly multivariate benchmark with seven numerical variables. Four model families are compared: Linear Regression (LR), a multilayer perceptron (MLP), an LSTM network, and a Temporal Fusion Transformer (TFT). The models share a chronological 60/20/20 split, train-only standardization, split-local sliding-window generation, a 96-hour input window, and a direct 24-hour multi-step forecasting task. Final reported metrics are evaluated in the original data scale, while diagnostic scaled metrics may be retained as supporting artifacts. Interpretability is operationalized primarily through common occlusion importance, AOPC-based faithfulness evaluation, and rank agreement. SHAP outputs for LR, MLP, and LSTM and architecture-native VSN / interpret_output importance for TFT are treated as auxiliary, method-specific explanation artifacts.
+
+Under the defined ETTh1 setup, the deterministic LR baseline achieved the lowest forecasting error among the selected models, while the neural models showed model- and seed-dependent differences. The interpretability analysis reports model-level evidence from occlusion behaviour, AOPC summaries, and rank agreement rather than statements about physical variable relevance. The results support a cautious discussion of predictive performance, interpretability, and operational complexity within this specific experimental setup. Reproducibility is framed as automated artifact-level verification, not as a general guarantee of machine-independent numerical execution.
+
+# Keywords
+
+Time-series forecasting, fair model comparison, occlusion-based explainability, AOPC, reproducibility

@@ -1,0 +1,170 @@
+{
+  "timestamp_utc": "2026-05-06T21:43:44.481629+00:00",
+  "mode": "core",
+  "active_config": "configs/experiments/fair_core_v2.yaml",
+  "results_dir": "results/bachelor_safe_v2",
+  "checkpoints_dir": "checkpoints/bachelor_safe_v2",
+  "active_seeds": [
+    42,
+    123,
+    456,
+    789,
+    1024
+  ],
+  "auxiliary_shap_regenerated": false,
+  "primary_xai_verified": true,
+  "auxiliary_xai_verified": false,
+  "checksum_manifest_written": true,
+  "number_of_artifacts_checksummed": 74,
+  "runtime_seconds": 0.085,
+  "status": "PASS",
+  "failed_checks": [],
+  "checks": {
+    "A_config": {
+      "passed": [
+        "config_exists",
+        "config_loads",
+        "value_data_path",
+        "value_input_len",
+        "value_output_len",
+        "value_results_dir",
+        "value_checkpoints_dir",
+        "value_seeds"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "B_dataset": {
+      "passed": [
+        "dataset_exists",
+        "dataset_columns",
+        "dataset_row_count",
+        "dataset_missing_values"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "C_core_csv": {
+      "passed": [
+        "multi_seed_fair_baseline.csv",
+        "tft_metrics.csv",
+        "tft_summary.csv",
+        "per_seed_metrics.csv",
+        "per_horizon_metrics.csv",
+        "bootstrap_intervals.csv",
+        "runtime_seconds.csv",
+        "training_curves.csv",
+        "tft_training_curves.csv",
+        "complexity_metrics.csv",
+        "bootstrap_block_sensitivity.csv"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "D_xai_csv": {
+      "passed": [
+        "occlusion_importance.csv",
+        "faithfulness_aopc.csv",
+        "faithfulness_aopc_per_k.csv",
+        "xai_agreement_occlusion.csv",
+        "tft_importance.csv",
+        "trade_off_data.csv"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "E_predictions": {
+      "passed": [
+        "preds_lr.npy",
+        "preds_mlp_seed42.npy",
+        "preds_lstm_seed42.npy",
+        "preds_tft_seed42.npy",
+        "preds_mlp_seed123.npy",
+        "preds_lstm_seed123.npy",
+        "preds_tft_seed123.npy",
+        "preds_mlp_seed456.npy",
+        "preds_lstm_seed456.npy",
+        "preds_tft_seed456.npy",
+        "preds_mlp_seed789.npy",
+        "preds_lstm_seed789.npy",
+        "preds_tft_seed789.npy",
+        "preds_mlp_seed1024.npy",
+        "preds_lstm_seed1024.npy",
+        "preds_tft_seed1024.npy"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "F_checkpoints": {
+      "passed": [
+        "lr_checkpoint_status_NA",
+        "mlp_seed42.pt",
+        "lstm_seed42.pt",
+        "tft_seed42.ckpt",
+        "mlp_seed123.pt",
+        "lstm_seed123.pt",
+        "tft_seed123.ckpt",
+        "mlp_seed456.pt",
+        "lstm_seed456.pt",
+        "tft_seed456.ckpt",
+        "mlp_seed789.pt",
+        "lstm_seed789.pt",
+        "tft_seed789.ckpt",
+        "mlp_seed1024.pt",
+        "lstm_seed1024.pt",
+        "tft_seed1024.ckpt"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "G_figures": {
+      "passed": [
+        "fig_01_dataset_overview.pdf",
+        "fig_01_dataset_overview.png",
+        "fig_02_train_test_split.pdf",
+        "fig_02_train_test_split.png",
+        "fig_03_pipeline_architecture.pdf",
+        "fig_03_pipeline_architecture.png",
+        "fig_04_model_performance_comparison.pdf",
+        "fig_04_model_performance_comparison.png",
+        "fig_05_per_horizon_error.pdf",
+        "fig_05_per_horizon_error.png",
+        "fig_06_faithfulness_aopc_by_k.pdf",
+        "fig_06_faithfulness_aopc_by_k.png",
+        "fig_07_xai_agreement_heatmap.pdf",
+        "fig_07_xai_agreement_heatmap.png",
+        "fig_08_performance_interpretability_tradeoff.pdf",
+        "fig_08_performance_interpretability_tradeoff.png",
+        "fig_09_model_complexity.pdf",
+        "fig_09_model_complexity.png"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "G_generated_tables": {
+      "passed": [
+        "bootstrap_full.md",
+        "bootstrap_headline.md",
+        "complexity_table.md",
+        "overall_metrics_table.md",
+        "per_seed_table.md",
+        "pipeline_status_table.md",
+        "status_summary.md"
+      ],
+      "failed": [],
+      "warned": []
+    },
+    "H_provenance_outputs": {
+      "passed": [
+        "artifact_manifest_sha256.csv",
+        "reproducibility_verification_report.json"
+      ],
+      "failed": [],
+      "warned": []
+    }
+  },
+  "missing_files": [],
+  "schema_errors": [],
+  "warnings": [],
+  "verified_artifact_count": 74
+}

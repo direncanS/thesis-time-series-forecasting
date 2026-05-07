@@ -6,7 +6,7 @@ Thesis render/export spec. Locked in session **S-11.5** (2026-04-20) with Gate B
 
 - **Output format:** PDF (FH Joanneum default)
 - **Toolchain:** Pandoc (installed in `thesis` conda env via conda-forge S-11.5 2026-04-20)
-- **Citation strategy:** (i) **markdown-assembly** — default, no `.bib` extraction. Harvard in-text citations are already plain-text in `docs/*.md` per CLAUDE.md § 22. The `docs/references.md` section is concatenated into the PDF as the bibliography.
+- **Citation strategy:** (i) **markdown-assembly** — default, no `.bib` extraction. Harvard in-text citations are already plain-text in `docs/*.md`. The `docs/references.md` section is concatenated into the PDF as the bibliography.
 - **PDF engine:** **tectonic** (installed via conda-forge; self-contained LaTeX engine with full Unicode support — handles German umlauts ä ö ü ß natively)
 - **Thesis language:** German (user decision S-11.5 2026-04-20). `-V lang=de` flag required.
 

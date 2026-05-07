@@ -11,7 +11,7 @@ build/
 dist/
 
 # Training runtime / binary artefacts
-# (regeneratable; SHA256 refs tracked via results/v2/artifacts_manifest.json in later sessions)
+# regeneratable; SHA256 manifest can be produced via scripts/verify_end_to_end_reproducibility.py --write-hashes at results/bachelor_safe_v2/artifact_manifest_sha256.csv
 lightning_logs/
 *.ckpt
 *.pt

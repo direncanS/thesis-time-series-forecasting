@@ -16,6 +16,7 @@ CONFIG ?= configs/experiments/fair_core_v2.yaml
         train train-core train-tft \
         analyze export-preds per-horizon bootstrap \
         tables tables-verify \
+        verify-core verify-full \
         all clean
 
 help:
@@ -30,6 +31,8 @@ help:
 	@echo "  per-horizon   per-horizon metrics CSV"
 	@echo "  bootstrap     moving-block paired bootstrap + sensitivity table"
 	@echo "  analyze       export-preds + per-horizon + bootstrap"
+	@echo "  verify-core   artifact-level verification for primary v2 pipeline"
+	@echo "  verify-full   verify-core + bounded auxiliary SHAP artifacts"
 	@echo "  all           train + analyze + test"
 	@echo "  clean         remove __pycache__ / .pytest_cache / .ruff_cache"
 
@@ -46,7 +49,7 @@ train-core:
 	$(PYTHON) src/training/multi_seed.py --config $(CONFIG)
 
 train-tft:
-	$(PYTHON) src/training/tft_fair_3seed.py --config $(CONFIG)
+	$(PYTHON) src/training/tft_fair_5seed.py --config $(CONFIG)
 
 train: train-core train-tft
 
@@ -66,6 +69,12 @@ tables:
 
 tables-verify:
 	$(PYTHON) scripts/regen_tables.py --verify
+
+verify-core:
+	$(PYTHON) scripts/verify_end_to_end_reproducibility.py --mode core --config $(CONFIG)
+
+verify-full:
+	$(PYTHON) scripts/verify_end_to_end_reproducibility.py --mode full --config $(CONFIG)
 
 all: train analyze tables test
 

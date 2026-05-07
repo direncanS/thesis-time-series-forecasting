@@ -1,198 +1,131 @@
-"""
-LSTM SHAP Analysis — thesis-valid, loads multi_seed.py checkpoints.
-===================================================================
+"""Bounded auxiliary LSTM explanation artifacts for the active v2 experiment.
 
-Purpose: Compute SHAP variable-importance for LSTM using the saved best-val-loss
-         checkpoints from src/multi_seed.py. NOT a fresh-trained model —
-         § 11A item 9 + SUSPECT-09 guard.
+This script keeps LSTM SHAP as a model-specific auxiliary explanation artifact.
+The primary active XAI workflow remains common occlusion importance + AOPC +
+cross-model agreement.
 
-Fix 2026-04-19 (S-06 pre-run audit):
-    Previous version fresh-trained an LSTM with lr=1e-3 for 50 fixed epochs,
-    diverging from multi_seed.py's § 10 locked configuration (lr=1e-4,
-    patience=10, val_loss monitored, restore-best). That characterized a
-    different model from the one reported in multi_seed_fair_baseline.csv.
-    This version loads `checkpoints/lstm_seed{42,123,456}.pt`.
-
-LSTM specifics:
-    - Input is 3D (batch, 96, 7) — NOT flattened
-    - SHAP output on 3D input: (n_outputs, n_eval, 96, 7) after normalization
-    - DeepExplainer may fail with LSTM (known issue) → GradientExplainer →
-      manual gradient-attribution fallback
-
-SHAP Protocol (CLAUDE.md § 10 locked; methodology § 2.9.0 baseline spec):
-    - N_EVAL = 100, N_BG = 100, EVAL_SEED = 42, BG_SEED = 42
-    - N_BG is held identical to shap_mlp.py per CLAUDE.md § 11A item 5
-      (preprocessing symmetry). Runtime cost on RTX 5080: ~5–7 min per seed,
-      ~20 min total for SEEDS = {42, 123, 456}.
-    - Baseline: training-distribution mean in the scaled input space
-      (equivalently the zero-vector by StandardScaler construction, § 4)
-    - SEEDS = {42, 123, 456} — per-seed SHAP for S-09 stability analysis
-    - Aggregation (§ 15): mean |SHAP| over output dims × eval samples × input
-      timesteps → per-seed (7,); mean across seeds → final (7,)
-
-Output:
-    results/shap_lstm.csv       — long format, 28 rows (3 seeds × 7 + 7 mean)
-    results/shap_lstm_cross.csv — seed-averaged cross-variable matrix (7, 7)
+Important LSTM limitation: if SHAP GradientExplainer is too slow or fails, the
+script can use manual gradient attribution. That fallback is explicitly not true
+SHAP and is marked in the CSV metadata.
 """
 
+from __future__ import annotations
+
+import argparse
 import gc
-import os
+from pathlib import Path
 import time
 import warnings
 
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
-from sklearn.preprocessing import StandardScaler
+
+from src.common import (
+    LSTMModel,
+    apply_runtime_overrides,
+    ensure_dir,
+    load_config,
+    prepare_supervised_data,
+)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 try:
     import shap
-
-    print(f"SHAP version: {shap.__version__}")
-except ImportError:
-    print("ERROR: shap is not installed. Run: pip install shap")
-    exit(1)
+except ImportError:  # pragma: no cover - allows --force-gradient-fallback without SHAP
+    shap = None
 
 
-# ============================================================
-# Constants (CLAUDE.md § 10 locked; methodology § 2.9.0 baseline)
-# ============================================================
-N_EVAL = 100
-N_BG = 100                               # symmetric with shap_mlp.py (§ 11A item 5)
+DEFAULT_CONFIG_PATH = "configs/experiments/fair_core_v2.yaml"
+DEFAULT_MAX_EVAL_WINDOWS = 32
+DEFAULT_MAX_BACKGROUND_WINDOWS = 32
 EVAL_SEED = 42
-BG_SEED = 42                             # = EVAL_SEED; background uses the second
-                                         # consecutive stream of the same RandomState
-SHAP_BASELINE = "train_mean_scaled"      # training-distribution mean in scaled space
-SEEDS = [42, 123, 456]
-
-# LSTM-specific note: SHAP DeepExplainer does not support nn.LSTM (assertion
-# failure — explanations do not sum to model output). The script therefore
-# uses GradientExplainer, whose runtime scales linearly with N_BG. At
-# N_BG = 100 the per-seed runtime is ~5–7 min on an RTX 5080 Laptop GPU,
-# ~20 min total for three seeds. The previous N_BACKGROUND = 30 default
-# was removed (2026-04-20) because the resulting MLP/LSTM asymmetry
-# violated CLAUDE.md § 11A item 5 (preprocessing symmetry); runtime is
-# accepted as the explicit cost of symmetry.
+BG_SEED = 42
+SHAP_BASELINE = "train_mean_scaled"
+INPUT_SPACE = "scaled"
+TRUE_EXPLANATION_TYPE = "SHAP"
+FALLBACK_EXPLANATION_TYPE = "ManualGradientAttribution"
+FALLBACK_EXPLAINER = "GradientAttribution (fallback; not true SHAP)"
 
 
-# ============================================================
-# 0. Load + split + scale (identical pipeline to multi_seed.py)
-# ============================================================
-df = pd.read_csv("data/ETTh1.csv")
-features = df.drop(columns=["date"])
-var_names = features.columns.tolist()
-
-n = len(features)
-train_end = int(n * 0.6)
-val_end = int(n * 0.8)
-
-train = features.iloc[:train_end]
-test = features.iloc[val_end:]
-
-scaler = StandardScaler()
-scaler.fit(train)
-train_scaled = scaler.transform(train)
-test_scaled = scaler.transform(test)
+def log(message: str) -> None:
+    print(message, flush=True)
 
 
-def create_windows(data, input_len=96, output_len=24):
-    X, y = [], []
-    for i in range(len(data) - input_len - output_len + 1):
-        X.append(data[i : i + input_len])
-        y.append(data[i + input_len : i + input_len + output_len])
-    return np.array(X), np.array(y)
+def _bounded_choice(
+    rng: np.random.RandomState,
+    n_available: int,
+    requested: int,
+    label: str,
+) -> np.ndarray:
+    if requested <= 0:
+        raise ValueError(f"{label} must be positive, got {requested}")
+    n_used = min(requested, n_available)
+    if n_used < requested:
+        log(f"[shap-lstm] {label}: requested {requested}, using available {n_used}")
+    return rng.choice(n_available, size=n_used, replace=False)
 
 
-X_train, y_train = create_windows(train_scaled)
-X_test, y_test = create_windows(test_scaled)
-
-n_train = X_train.shape[0]
-n_test = X_test.shape[0]
-y_train_flat = y_train.reshape(n_train, -1)
-output_size = y_train_flat.shape[1]  # 168
-
-print(f"Data: {n} rows, {len(var_names)} variables: {var_names}")
-print(f"Train windows: {n_train}, Test windows: {n_test}")
-print(f"LSTM input: (batch, 96, 7); output: {output_size} flat targets (24×7)")
-
-
-# ============================================================
-# 1. LSTM model definition — identical to multi_seed.py
-# ============================================================
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1):
-        super().__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        lstm_out, _ = self.lstm(x)
-        last_hidden = lstm_out[:, -1, :]
-        return self.fc(last_hidden)
-
-
-# ============================================================
-# 2. Shared eval + background subsets (3D tensors)
-# ============================================================
-rng = np.random.RandomState(EVAL_SEED)
-eval_idx = rng.choice(n_test, size=N_EVAL, replace=False)
-bg_idx = rng.choice(n_train, size=N_BG, replace=False)
-
-X_eval = torch.FloatTensor(X_test[eval_idx])         # (100, 96, 7)
-X_background = torch.FloatTensor(X_train[bg_idx])    # (100, 96, 7)
-
-print(f"\nEvaluation subset: {N_EVAL} random test samples (EVAL_SEED={EVAL_SEED})")
-print(f"Background subset: {N_BG} random training samples (BG_SEED={BG_SEED})")
-print(f"SHAP baseline: {SHAP_BASELINE}")
-
-
-# ============================================================
-# SHAP helpers for LSTM (3D input)
-# ============================================================
-def run_shap_for_lstm(lstm_model, X_eval, X_background):
-    """GradientExplainer (primary) → manual gradient-attribution (fallback).
-
-    DeepExplainer is intentionally skipped: SHAP's DeepExplainer does not
-    fully support nn.LSTM and consistently raises an assertion that the
-    SHAP values do not sum to the model output (max diff ~0.9 vs tolerance
-    0.01). The previous fast-fail attempt cost ~30s per seed without
-    producing usable values; it is now removed (S-10d patch 2026-04-20).
-    """
-    try:
-        t0 = time.time()
-        print(f"    [SHAP] building GradientExplainer (bg={len(X_background)})...", flush=True)
-        explainer = shap.GradientExplainer(lstm_model, X_background)
-        print(f"    [SHAP] explainer built in {time.time()-t0:.1f}s; running shap_values on {len(X_eval)} eval samples...", flush=True)
-        t1 = time.time()
-        vals = explainer.shap_values(X_eval)
-        print(f"    [SHAP] shap_values done in {time.time()-t1:.1f}s", flush=True)
-        del explainer
-        gc.collect()
-        return vals, "GradientExplainer"
-    except Exception as e:
-        print(f"    GradientExplainer failed: {type(e).__name__}: {e}", flush=True)
-    # Manual gradient-attribution fallback
-    print("    Falling back to manual gradient attribution (not true SHAP).")
+def manual_gradient_attribution(lstm_model: LSTMModel, x_eval: torch.Tensor) -> np.ndarray:
+    """Bounded fallback attribution; this is not true SHAP."""
+    log(f"[shap-lstm] fallback start: manual gradients for {len(x_eval)} eval windows")
     lstm_model.eval()
     grads = []
-    for i in range(N_EVAL):
-        x_single = X_eval[i : i + 1].clone().requires_grad_(True)
+    for i in range(len(x_eval)):
+        if i == 0 or (i + 1) % 8 == 0 or i + 1 == len(x_eval):
+            log(f"[shap-lstm] fallback progress: {i + 1}/{len(x_eval)}")
+        x_single = x_eval[i : i + 1].clone().requires_grad_(True)
         out = lstm_model(x_single).sum()
         out.backward()
-        grads.append(x_single.grad.detach().numpy()[0])  # (96, 7)
+        grads.append(x_single.grad.detach().numpy()[0])
         lstm_model.zero_grad()
-    grad_array = np.stack(grads, axis=0)  # (N_EVAL, 96, 7)
-    # Wrap as single-output SHAP-like shape (1, N_EVAL, 96, 7)
-    return grad_array[np.newaxis, :, :, :], "GradientAttribution (fallback)"
+    grad_array = np.stack(grads, axis=0)
+    out = grad_array[np.newaxis, :, :, :]
+    log(f"[shap-lstm] fallback finished: attribution shape={out.shape}")
+    return out
 
 
-def parse_shap_output_3d(shap_values, n_eval, n_outputs):
-    """Normalize SHAP output to (n_outputs, n_eval, 96, 7) for LSTM 3D input."""
+def run_shap_for_lstm(
+    lstm_model: LSTMModel,
+    x_eval: torch.Tensor,
+    x_background: torch.Tensor,
+    *,
+    force_gradient_fallback: bool,
+) -> tuple[np.ndarray, str, bool]:
+    """Run GradientExplainer; fallback to bounded manual gradients if needed."""
+    if force_gradient_fallback:
+        log("[shap-lstm] force-gradient-fallback enabled; skipping GradientExplainer")
+        vals = manual_gradient_attribution(lstm_model, x_eval)
+        return vals, FALLBACK_EXPLAINER, False
+
+    if shap is None:
+        raise RuntimeError("shap is not installed; use --force-gradient-fallback or install SHAP")
+
+    try:
+        log(f"[shap-lstm] GradientExplainer start: background shape={tuple(x_background.shape)}")
+        t0 = time.time()
+        explainer = shap.GradientExplainer(lstm_model, x_background)
+        log(f"[shap-lstm] GradientExplainer built in {time.time() - t0:.1f}s")
+        log(f"[shap-lstm] shap_values start: eval shape={tuple(x_eval.shape)}")
+        t1 = time.time()
+        vals = explainer.shap_values(x_eval)
+        log(f"[shap-lstm] shap_values finished in {time.time() - t1:.1f}s")
+        del explainer
+        gc.collect()
+        return vals, "GradientExplainer", True
+    except Exception as exc:
+        log(f"[shap-lstm] GradientExplainer failed: {type(exc).__name__}: {exc}")
+
+    vals = manual_gradient_attribution(lstm_model, x_eval)
+    return vals, FALLBACK_EXPLAINER, False
+
+
+def parse_shap_output_3d(shap_values, n_eval: int, n_outputs: int) -> np.ndarray:
+    """Return SHAP values as (n_outputs, n_eval, input_len, n_features)."""
     if isinstance(shap_values, list):
         return np.stack(shap_values, axis=0)
+
     if isinstance(shap_values, np.ndarray):
         if shap_values.ndim == 4:
             if shap_values.shape[0] == n_eval and shap_values.shape[3] == n_outputs:
@@ -201,8 +134,8 @@ def parse_shap_output_3d(shap_values, n_eval, n_outputs):
                 return shap_values
             return shap_values.transpose(3, 0, 1, 2)
         if shap_values.ndim == 3:
-            # single output wrapped
             return shap_values[np.newaxis, :, :, :]
+
     vals = getattr(shap_values, "values", np.array(shap_values))
     if vals.ndim == 4:
         if vals.shape[0] == n_eval:
@@ -213,237 +146,268 @@ def parse_shap_output_3d(shap_values, n_eval, n_outputs):
     raise ValueError(f"Unexpected SHAP output shape: {vals.shape}")
 
 
-def cross_variable_from_gradient_fallback(lstm_model, X_eval, n_samples_cross=50):
-    """For manual gradient fallback: compute per-output-variable gradient magnitude
-    to populate a (7_out, 7_in) cross-variable matrix."""
-    cross = np.zeros((7, 7))
-    for out_var_idx in range(7):
+def cross_variable_from_gradient_fallback(
+    lstm_model: LSTMModel,
+    x_eval: torch.Tensor,
+    n_features: int,
+) -> np.ndarray:
+    """Populate a bounded cross-variable matrix for the non-SHAP fallback path."""
+    log("[shap-lstm] fallback cross-variable start")
+    cross = np.zeros((n_features, n_features))
+    for out_var_idx in range(n_features):
         out_grads = []
-        for i in range(min(N_EVAL, n_samples_cross)):
-            x_single = X_eval[i : i + 1].clone().requires_grad_(True)
-            output = lstm_model(x_single)  # (1, 168)
-            # Select outputs for this variable: columns out_var_idx, +7, +14, ..., across 24 horizons
-            out_for_var = output[0, out_var_idx::7].sum()
+        for i in range(len(x_eval)):
+            x_single = x_eval[i : i + 1].clone().requires_grad_(True)
+            output = lstm_model(x_single)
+            out_for_var = output[0, out_var_idx::n_features].sum()
             out_for_var.backward()
-            grad = x_single.grad.detach().numpy()[0]  # (96, 7)
-            out_grads.append(np.mean(np.abs(grad), axis=0))  # (7,)
+            grad = x_single.grad.detach().numpy()[0]
+            out_grads.append(np.mean(np.abs(grad), axis=0))
             lstm_model.zero_grad()
         cross[out_var_idx] = np.mean(out_grads, axis=0)
+    log("[shap-lstm] fallback cross-variable finished")
     return cross
 
 
-# ============================================================
-# 3. Per-seed SHAP (load best-val-loss checkpoint, compute importance)
-# ============================================================
-per_seed_importance = {}
-per_seed_cross = {}
-per_seed_mse_check = {}
-explainer_used = None
+def run_shap_lstm(
+    config_path: str = DEFAULT_CONFIG_PATH,
+    *,
+    results_dir: str | None = None,
+    checkpoints_dir: str | None = None,
+    max_background_windows: int = DEFAULT_MAX_BACKGROUND_WINDOWS,
+    max_eval_windows: int = DEFAULT_MAX_EVAL_WINDOWS,
+    max_seeds: int | None = None,
+    force_gradient_fallback: bool = False,
+) -> pd.DataFrame:
+    log("[shap-lstm] script start")
+    cfg = apply_runtime_overrides(
+        load_config(config_path),
+        smoke=False,
+        results_dir=results_dir,
+        checkpoints_dir=checkpoints_dir,
+    )
+    results_path = ensure_dir(cfg["results_dir"])
+    checkpoints_path = Path(cfg["checkpoints_dir"])
+    seeds = list(cfg["seeds"])
+    if max_seeds is not None:
+        if max_seeds <= 0:
+            raise ValueError(f"max_seeds must be positive, got {max_seeds}")
+        seeds = seeds[:max_seeds]
 
-for seed in SEEDS:
-    print(f"\n--- LSTM seed {seed}: load checkpoint + SHAP ---")
-    ckpt_path = f"checkpoints/lstm_seed{seed}.pt"
-    if not os.path.exists(ckpt_path):
-        raise FileNotFoundError(
-            f"{ckpt_path} missing — run src/multi_seed.py first."
+    log(
+        "[shap-lstm] loaded config: "
+        f"config={config_path}, results_dir={results_path}, "
+        f"checkpoints_dir={checkpoints_path}, seeds={seeds}"
+    )
+
+    data = prepare_supervised_data(cfg["data_path"], cfg["input_len"], cfg["output_len"])
+    log(
+        "[shap-lstm] prepared data shapes: "
+        f"X_train={data['X_train'].shape}, X_test={data['X_test'].shape}, "
+        f"y_test={data['y_test'].shape}"
+    )
+
+    rng = np.random.RandomState(EVAL_SEED)
+    eval_idx = _bounded_choice(rng, data["n_test"], max_eval_windows, "max_eval_windows")
+    bg_idx = _bounded_choice(rng, data["n_train"], max_background_windows, "max_background_windows")
+
+    x_eval = torch.FloatTensor(data["X_test"][eval_idx])
+    x_background = torch.FloatTensor(data["X_train"][bg_idx])
+    num_eval_used = int(x_eval.shape[0])
+    num_background_used = int(x_background.shape[0])
+    log(
+        "[shap-lstm] background/eval tensor shapes: "
+        f"background={tuple(x_background.shape)}, eval={tuple(x_eval.shape)}"
+    )
+
+    input_len = cfg["input_len"]
+    output_len = cfg["output_len"]
+    n_features = len(data["var_names"])
+    lstm_cfg = cfg["models"]["lstm"]
+
+    per_seed_importance: dict[int, np.ndarray] = {}
+    per_seed_cross: dict[int, np.ndarray] = {}
+    per_seed_mse_check: dict[int, float] = {}
+    per_seed_explainer: dict[int, str] = {}
+    per_seed_true_shap: dict[int, bool] = {}
+
+    for seed in seeds:
+        log(f"[shap-lstm] seed start: {seed}")
+        ckpt_path = checkpoints_path / f"lstm_seed{seed}.pt"
+        log(f"[shap-lstm] checkpoint path: {ckpt_path}")
+        if not ckpt_path.exists():
+            raise FileNotFoundError(f"missing LSTM checkpoint: {ckpt_path}")
+
+        lstm_model = LSTMModel(
+            input_size=n_features,
+            hidden_size=lstm_cfg["hidden_size"],
+            output_size=data["output_size"],
+            num_layers=lstm_cfg["num_layers"],
         )
-    lstm_model = LSTMModel(input_size=7, hidden_size=64, output_size=output_size)
-    state = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-    lstm_model.load_state_dict(state)
-    lstm_model.eval()
+        state = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        lstm_model.load_state_dict(state)
+        lstm_model.eval()
+        log(f"[shap-lstm] checkpoint loaded: {ckpt_path}")
+        log(
+            "[shap-lstm] background/eval tensor shapes: "
+            f"background={tuple(x_background.shape)}, eval={tuple(x_eval.shape)}"
+        )
 
-    # Sanity: test MSE check
-    with torch.no_grad():
-        y_pred_flat = lstm_model(torch.FloatTensor(X_test)).numpy()
-    y_pred_3d = y_pred_flat.reshape(n_test, 24, 7)
-    mse_scaled = float(np.mean((y_test - y_pred_3d) ** 2))
-    per_seed_mse_check[seed] = mse_scaled
-    print(f"  seed {seed} scaled MSE: {mse_scaled:.4f}")
+        with torch.no_grad():
+            y_pred_flat = lstm_model(torch.FloatTensor(data["X_test"])).numpy()
+        y_pred_3d = y_pred_flat.reshape(data["n_test"], output_len, n_features)
+        per_seed_mse_check[seed] = float(np.mean((data["y_test"] - y_pred_3d) ** 2))
 
-    # SHAP
-    shap_values, explainer_name = run_shap_for_lstm(lstm_model, X_eval, X_background)
-    if explainer_used is None:
-        explainer_used = explainer_name
-    print(f"  explainer: {explainer_name}")
+        shap_values, explainer_name, is_true_shap = run_shap_for_lstm(
+            lstm_model,
+            x_eval,
+            x_background,
+            force_gradient_fallback=force_gradient_fallback,
+        )
+        per_seed_explainer[seed] = explainer_name
+        per_seed_true_shap[seed] = is_true_shap
 
-    # Parse to (n_outputs, n_eval, 96, 7)
-    is_fallback = explainer_name == "GradientAttribution (fallback)"
-    if is_fallback:
-        # shap_values already in (1, N_EVAL, 96, 7) form
-        shap_array = shap_values
-    else:
-        shap_array = parse_shap_output_3d(shap_values, N_EVAL, output_size)
+        if is_true_shap:
+            shap_array = parse_shap_output_3d(shap_values, num_eval_used, data["output_size"])
+        else:
+            shap_array = shap_values
 
-    # (7,) per-variable importance: mean |SHAP| over outputs × samples × in-timesteps
-    var_importance = np.mean(np.abs(shap_array), axis=(0, 1, 2))
+        var_importance = np.mean(np.abs(shap_array), axis=(0, 1, 2))
 
-    # (7, 7) cross-variable
-    if is_fallback:
-        # Manual gradient attribution per output-variable
-        print("    computing per-output-variable gradients for cross matrix...")
-        cross_importance = cross_variable_from_gradient_fallback(lstm_model, X_eval)
-    else:
-        # Reshape outputs 168 → (24, 7); average over out-t × samples × in-t
-        shap_by_outvar = shap_array.reshape(24, 7, N_EVAL, 96, 7)
-        cross_importance = np.mean(np.abs(shap_by_outvar), axis=(0, 2, 3))
-
-    per_seed_importance[seed] = var_importance
-    per_seed_cross[seed] = cross_importance
-    print(
-        "  per-seed importance: "
-        + ", ".join(f"{v}={imp:.4f}" for v, imp in zip(var_names, var_importance))
-    )
-
-    del lstm_model, shap_values, shap_array, y_pred_flat, y_pred_3d
-    gc.collect()
-
-
-# ============================================================
-# 4. Aggregate across seeds
-# ============================================================
-imp_stack = np.stack([per_seed_importance[s] for s in SEEDS], axis=0)  # (3, 7)
-mean_importance = imp_stack.mean(axis=0)
-std_importance = imp_stack.std(axis=0, ddof=1)
-
-cross_stack = np.stack([per_seed_cross[s] for s in SEEDS], axis=0)  # (3, 7, 7)
-mean_cross = cross_stack.mean(axis=0)
-
-
-# ============================================================
-# 5. 3-way SHAP comparison (LR / MLP / LSTM)
-# ============================================================
-lr_ranking, mlp_ranking = None, None
-
-lr_path = "results/shap_lr.csv"
-if os.path.exists(lr_path):
-    lr_df = pd.read_csv(lr_path).sort_values("shap_rank")
-    lr_ranking = lr_df["variable"].tolist()[:7]
-    print(f"\nLR SHAP ranking: {lr_ranking}")
-
-mlp_path = "results/shap_mlp.csv"
-if os.path.exists(mlp_path):
-    mlp_df = pd.read_csv(mlp_path)
-    # Filter to mean-across-seeds rows (new format)
-    if "aggregation" in mlp_df.columns:
-        mlp_mean_rows = mlp_df[mlp_df["aggregation"] == "mean-across-seeds"]
-        if len(mlp_mean_rows) == 7:
-            mlp_mean_rows_sorted = mlp_mean_rows.sort_values(
-                "shap_importance", ascending=False
+        if is_true_shap:
+            shap_by_outvar = shap_array.reshape(
+                output_len,
+                n_features,
+                num_eval_used,
+                input_len,
+                n_features,
             )
-            mlp_ranking = mlp_mean_rows_sorted["variable"].tolist()
-    else:
-        # Legacy format fallback
-        mlp_ranking = mlp_df.sort_values("shap_rank")["variable"].tolist()[:7]
-    print(f"MLP SHAP ranking (mean across seeds): {mlp_ranking}")
+            cross_importance = np.mean(np.abs(shap_by_outvar), axis=(0, 2, 3))
+        else:
+            cross_importance = cross_variable_from_gradient_fallback(
+                lstm_model,
+                x_eval,
+                n_features,
+            )
 
+        per_seed_importance[seed] = var_importance
+        per_seed_cross[seed] = cross_importance
 
-# ============================================================
-# 6. Report
-# ============================================================
-print("\n" + "=" * 72)
-print("LSTM SHAP RESULTS — seed-averaged")
-print("=" * 72)
+        del lstm_model, shap_values, shap_array, y_pred_flat, y_pred_3d
+        gc.collect()
 
-mean_ranking = np.argsort(-mean_importance)
-lstm_order = [var_names[i] for i in mean_ranking]
+    imp_stack = np.stack([per_seed_importance[s] for s in seeds], axis=0)
+    mean_importance = imp_stack.mean(axis=0)
+    std_importance = imp_stack.std(axis=0, ddof=1) if len(seeds) > 1 else np.zeros(n_features)
 
-print(f"\nMean |SHAP| across seeds (explainer: {explainer_used}):")
-print(f"  {'Rank':<5} {'Variable':<8} {'Mean':>10} {'Std':>10}")
-print("  " + "-" * 38)
-for rank, idx in enumerate(mean_ranking):
-    print(
-        f"  {rank + 1:<5} {var_names[idx]:<8} "
-        f"{mean_importance[idx]:>10.4f} {std_importance[idx]:>10.4f}"
-    )
+    cross_stack = np.stack([per_seed_cross[s] for s in seeds], axis=0)
+    mean_cross = cross_stack.mean(axis=0)
 
-if lr_ranking and mlp_ranking:
-    print("\n3-way ranking comparison (position):")
-    print(f"  {'Rank':<5} {'LR':<10} {'MLP':<10} {'LSTM':<10}")
-    print("  " + "-" * 35)
-    for rank in range(7):
-        lr_v = lr_ranking[rank] if rank < len(lr_ranking) else "?"
-        mlp_v = mlp_ranking[rank] if rank < len(mlp_ranking) else "?"
-        lstm_v = lstm_order[rank]
-        print(f"  {rank + 1:<5} {lr_v:<10} {mlp_v:<10} {lstm_v:<10}")
-    lr_lstm = sum(1 for a, b in zip(lr_ranking, lstm_order) if a == b)
-    mlp_lstm = sum(1 for a, b in zip(mlp_ranking, lstm_order) if a == b)
-    print(f"\n  Position matches: LR vs LSTM = {lr_lstm}/7; MLP vs LSTM = {mlp_lstm}/7")
+    explainers = sorted(set(per_seed_explainer.values()))
+    mean_explainer = explainers[0] if len(explainers) == 1 else "mixed"
+    mean_true_shap = all(per_seed_true_shap.values())
 
-print("\nPer-seed importance matrix (variable × seed):")
-print(f"  {'Variable':<8}", end="")
-for s in SEEDS:
-    print(f" {('seed' + str(s)):>10}", end="")
-print()
-print("  " + "-" * (8 + 11 * len(SEEDS)))
-for i, v in enumerate(var_names):
-    print(f"  {v:<8}", end="")
-    for s in SEEDS:
-        print(f" {per_seed_importance[s][i]:>10.4f}", end="")
-    print()
+    rows = []
+    for seed in seeds:
+        ranking = np.argsort(-per_seed_importance[seed])
+        warning = "" if per_seed_true_shap[seed] else "manual_gradient_fallback_not_true_shap"
+        explanation_type = TRUE_EXPLANATION_TYPE if per_seed_true_shap[seed] else FALLBACK_EXPLANATION_TYPE
+        for idx in range(n_features):
+            rows.append(
+                {
+                    "model": "LSTM",
+                    "seed": seed,
+                    "variable": data["var_names"][idx],
+                    "shap_importance": float(per_seed_importance[seed][idx]),
+                    "input_space": INPUT_SPACE,
+                    "explanation_type": explanation_type,
+                    "active_config": config_path,
+                    "is_true_shap": per_seed_true_shap[seed],
+                    "warning": warning,
+                    "num_background_windows_used": num_background_used,
+                    "num_eval_windows_used": num_eval_used,
+                    "method": f"SHAP ({per_seed_explainer[seed]})",
+                    "aggregation": "per-seed",
+                    "shap_rank": list(ranking).index(idx) + 1,
+                    "eval_seed": EVAL_SEED,
+                    "bg_seed": BG_SEED,
+                    "shap_baseline": SHAP_BASELINE,
+                    "explainer": per_seed_explainer[seed],
+                    "mse_scaled_check": per_seed_mse_check[seed],
+                    "checkpoint_path": str(checkpoints_path / f"lstm_seed{seed}.pt"),
+                }
+            )
 
-
-# ============================================================
-# 7. Save — long format
-# ============================================================
-os.makedirs("results", exist_ok=True)
-
-rows = []
-for seed in SEEDS:
-    imp_vec = per_seed_importance[seed]
-    for idx in range(len(var_names)):
+    mean_ranking = np.argsort(-mean_importance)
+    mean_warning = "" if mean_true_shap else "one_or_more_seeds_used_manual_gradient_fallback_not_true_shap"
+    mean_explanation_type = TRUE_EXPLANATION_TYPE if mean_true_shap else "mixed_or_fallback"
+    for idx in range(n_features):
         rows.append(
             {
                 "model": "LSTM",
-                "method": f"SHAP ({explainer_used})",
-                "aggregation": "per-seed",
-                "seed": seed,
-                "variable": var_names[idx],
-                "shap_importance": float(imp_vec[idx]),
-                "n_eval": N_EVAL,
-                "n_bg": N_BG,
+                "seed": "mean",
+                "variable": data["var_names"][idx],
+                "shap_importance": float(mean_importance[idx]),
+                "input_space": INPUT_SPACE,
+                "explanation_type": mean_explanation_type,
+                "active_config": config_path,
+                "is_true_shap": mean_true_shap,
+                "warning": mean_warning,
+                "num_background_windows_used": num_background_used,
+                "num_eval_windows_used": num_eval_used,
+                "method": f"SHAP ({mean_explainer})",
+                "aggregation": "mean-across-seeds",
+                "shap_rank": list(mean_ranking).index(idx) + 1,
                 "eval_seed": EVAL_SEED,
                 "bg_seed": BG_SEED,
                 "shap_baseline": SHAP_BASELINE,
-                "explainer": explainer_used,
-                "mse_scaled_check": per_seed_mse_check[seed],
+                "explainer": mean_explainer,
+                "mse_scaled_check": None,
+                "shap_importance_std_across_seeds": float(std_importance[idx]),
+                "checkpoint_path": "not_applicable_mean_across_seeds",
             }
         )
-for idx in range(len(var_names)):
-    rows.append(
-        {
-            "model": "LSTM",
-            "method": f"SHAP ({explainer_used})",
-            "aggregation": "mean-across-seeds",
-            "seed": "mean",
-            "variable": var_names[idx],
-            "shap_importance": float(mean_importance[idx]),
-            "n_eval": N_EVAL,
-            "n_bg": N_BG,
-            "eval_seed": EVAL_SEED,
-            "bg_seed": BG_SEED,
-            "shap_baseline": SHAP_BASELINE,
-            "explainer": explainer_used,
-            "mse_scaled_check": None,
-        }
+
+    out_df = pd.DataFrame(rows)
+    out_csv = results_path / "shap_lstm.csv"
+    out_df.to_csv(out_csv, index=False)
+    log(f"[shap-lstm] CSV saved: {out_csv} ({len(out_df)} rows)")
+
+    cross_df = pd.DataFrame(
+        mean_cross,
+        index=[f"output_{v}" for v in data["var_names"]],
+        columns=[f"input_{v}" for v in data["var_names"]],
+    )
+    cross_csv = results_path / "shap_lstm_cross.csv"
+    cross_df.to_csv(cross_csv)
+    log(f"[shap-lstm] CSV saved: {cross_csv}")
+    return out_df
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Bounded auxiliary LSTM explanation export for active v2.")
+    parser.add_argument("--config", default=DEFAULT_CONFIG_PATH)
+    parser.add_argument("--results-dir", default=None)
+    parser.add_argument("--checkpoints-dir", default=None)
+    parser.add_argument("--max-background-windows", type=int, default=DEFAULT_MAX_BACKGROUND_WINDOWS)
+    parser.add_argument("--max-eval-windows", type=int, default=DEFAULT_MAX_EVAL_WINDOWS)
+    parser.add_argument("--max-seeds", type=int, default=None)
+    parser.add_argument("--force-gradient-fallback", action="store_true")
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    run_shap_lstm(
+        args.config,
+        results_dir=args.results_dir,
+        checkpoints_dir=args.checkpoints_dir,
+        max_background_windows=args.max_background_windows,
+        max_eval_windows=args.max_eval_windows,
+        max_seeds=args.max_seeds,
+        force_gradient_fallback=args.force_gradient_fallback,
     )
 
-csv_df = pd.DataFrame(rows)
-csv_path = "results/shap_lstm.csv"
-csv_df.to_csv(csv_path, index=False)
-print(f"\nSaved: {csv_path} ({len(rows)} rows)")
 
-cross_df = pd.DataFrame(
-    mean_cross,
-    index=[f"output_{v}" for v in var_names],
-    columns=[f"input_{v}" for v in var_names],
-)
-cross_path = "results/shap_lstm_cross.csv"
-cross_df.to_csv(cross_path)
-print(f"Saved: {cross_path} (seed-averaged 7×7 cross-variable matrix)")
-
-print("\nVERIFICATION CHECKLIST:")
-print("  [x] 3 seeds loaded from checkpoints/lstm_seed{42,123,456}.pt")
-print("  [x] SHAP run on best-val-loss checkpoints (SUSPECT-09 guard)")
-print("  [x] § 11A item 9 validation/checkpoint selection symmetric with multi_seed.py")
-print(f"  [x] Explainer: {explainer_used} (SUSPECT-08 documented in CSV)")
-print("  [x] Per-seed + mean-across-seeds rows in CSV (S-09 stability-ready)")
+if __name__ == "__main__":
+    main()

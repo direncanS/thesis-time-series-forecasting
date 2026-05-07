@@ -44,7 +44,7 @@ def test_parse_validation_log_finds_validated_scripts():
     # Expect at least the core pipeline scripts to be present
     for expected in (
         "src/training/multi_seed.py",
-        "src/training/tft_fair_3seed.py",
+        "src/training/tft_fair_5seed.py",
         "src/evaluation/export_predictions.py",
         "src/evaluation/post_training_analysis.py",
     ):

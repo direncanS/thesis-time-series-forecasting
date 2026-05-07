@@ -1,12 +1,11 @@
 # Appendix
 
-<!-- Main text must stand alone without it (§ 7). -->
-<!-- S-07b 2026-04-19: lifted from skeleton via thesis-writer revise mode. -->
-<!-- File names and implementation snippets are admissible here (CLAUDE.md skeleton note). -->
+<!-- Main text must stand alone without the appendix. -->
+<!-- File names and implementation snippets are admissible here. -->
 
 ## A. Full Hyperparameter Tables
 
-The values below are the locked implementation defaults of § 10. They are reproduced from `CLAUDE.md` and `docs/EXPERIMENT_MANIFEST.md` and are not changed across any reported run.
+The values below are the locked implementation defaults of this thesis. They are reproduced here for reference and are not changed across any reported run.
 
 ### A.1 Linear Regression (LR)
 
@@ -15,9 +14,9 @@ The values below are the locked implementation defaults of § 10. They are repro
 | Solver | Closed-form OLS (`sklearn.linear_model.LinearRegression`) |
 | Input dimensionality | 672 (96 × 7, flattened) |
 | Output dimensionality | 168 (24 × 7, flattened) |
-| Optimiser | N/A (deterministic; § 11A item 8 deterministic-baseline exception) |
+| Optimiser | N/A (deterministic; deterministic-baseline exception) |
 | Learning rate | N/A |
-| Validation monitor | N/A (§ 11A item 9 exception) |
+| Validation monitor | N/A (deterministic-baseline exception) |
 | Checkpoint | N/A |
 | Seeds | N/A (deterministic) |
 
@@ -101,7 +100,7 @@ The following plot artefacts are produced by the pipeline and are referenced in 
 - Per-seed validation-loss training curves for MLP and LSTM (`results/training_curves.csv`).
 - Per-seed validation-loss training curves for TFT (`results/tft_training_curves.csv`).
 
-Combined-overlay plots were previously planned via `src/utils/prediction_vis_combined.py`, which was dropped from the pipeline on 2026-04-20 (S-11 archive migration; the script assumed an OT-only TFT target inconsistent with § 10). The thesis therefore does not include rendered combined-overlay plots; source CSVs above remain the per-model reference.
+Combined-overlay plots were previously planned via `src/utils/prediction_vis_combined.py`, which was dropped from the pipeline on 2026-04-20 (S-11 archive migration; the script assumed an OT-only TFT target inconsistent with the locked implementation defaults). The thesis therefore does not include rendered combined-overlay plots; source CSVs above remain the per-model reference.
 
 ## C. Code Structure Reference
 
@@ -116,33 +115,33 @@ src/
 └── explainability/   SHAP + faithfulness + cross-model agreement + trade-off plot
 ```
 
-(`src/utils/` now holds only a package-marker `__init__.py` after the S-11 archive migration 2026-04-20: its prior inhabitants — `verify_reproducibility.py`, `eval_original_scale.py`, `prediction_vis_combined.py` — all assumed an OT-only TFT regime inconsistent with § 10 fair-core and were moved to `archive/superseded_src/`.)
+(`src/utils/` now holds only a package-marker `__init__.py` after the S-11 archive migration 2026-04-20: its prior inhabitants — `verify_reproducibility.py`, `eval_original_scale.py`, `prediction_vis_combined.py` — all assumed an OT-only TFT regime inconsistent with the fair-core configuration and were moved to `archive/superseded_src/`.)
 
 <!-- @begin-include _generated/pipeline_status_table.md -->
 | Conceptual component | File(s) | Status | Output artefact(s) |
 |----------------------|---------|--------|---------------------|
-| Data processing | `src/training/multi_seed.py`; `src/training/tft_fair_3seed.py` | **PENDING (v2 auditor pass)** | scaled tensors in memory |
-| LR training path | `src/training/multi_seed.py` (LR pathway) | **PENDING (v2 auditor pass)** | `results/multi_seed_fair_baseline.csv` (LR row) |
-| MLP training path | `src/training/multi_seed.py` (MLP pathway) | **PENDING (v2 auditor pass)** | `results/multi_seed_fair_baseline.csv` (MLP rows); `checkpoints/mlp_seed*.pt` |
-| LSTM training path | `src/training/multi_seed.py` (LSTM pathway) | **PENDING (v2 auditor pass)** | `results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed*.pt` |
-| TFT training path | `src/training/tft_fair_3seed.py` | **PENDING (v2 auditor pass)** | `results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed*.ckpt` |
-| Prediction export | `src/evaluation/export_predictions.py` | **PENDING (v2 auditor pass)** | `results/preds_*.npy` (shape `(n_test, 24, 7)`) |
-| Post-training analysis (per-seed + complexity + bootstrap) | `src/evaluation/post_training_analysis.py` | **PENDING (v2 auditor pass)** | `results/per_seed_metrics.csv`; `results/complexity_metrics.csv`; `results/bootstrap_intervals.csv` + `bootstrap_block_sensitivity.csv` |
+| Data processing | `src/training/multi_seed.py`; `src/training/tft_fair_5seed.py` | **VALIDATED** | scaled tensors in memory |
+| LR training path | `src/training/multi_seed.py` (LR pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LR row) |
+| MLP training path | `src/training/multi_seed.py` (MLP pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (MLP rows); `checkpoints/mlp_seed*.pt` |
+| LSTM training path | `src/training/multi_seed.py` (LSTM pathway) | **VALIDATED** | `results/multi_seed_fair_baseline.csv` (LSTM rows); `checkpoints/lstm_seed*.pt` |
+| TFT training path | `src/training/tft_fair_5seed.py` | **VALIDATED** | `results/tft_summary.csv`; `results/tft_metrics.csv`; `results/tft_training_curves.csv`; `results/tft_importance.csv`; `checkpoints/tft_seed*.ckpt` |
+| Prediction export | `src/evaluation/export_predictions.py` | **VALIDATED** | `results/preds_*.npy` (shape `(n_test, 24, 7)`) |
+| Post-training analysis (per-seed + complexity + bootstrap) | `src/evaluation/post_training_analysis.py` | **VALIDATED** | `results/per_seed_metrics.csv`; `results/complexity_metrics.csv`; `results/bootstrap_intervals.csv` + `bootstrap_block_sensitivity.csv` |
 | Explainability — SHAP | `src/explainability/shap_lr.py`; `src/explainability/shap_mlp.py`; `src/explainability/shap_lstm.py` | **VALIDATED** | `results/shap_{lr,mlp,lstm}.csv` |
-| Explainability — VSN | `src/training/tft_fair_3seed.py` (TFT VSN extraction) | **PENDING (v2 auditor pass)** | `results/tft_importance.csv` |
-| Faithfulness layer | `src/explainability/faithfulness_test.py` | **PENDING (v2 auditor pass)** | `results/faithfulness.csv` |
-| Cross-model XAI agreement | `src/explainability/cross_model_xai_agreement.py` | **PENDING (v2 auditor pass)** | `results/xai_agreement.csv` |
-| Accuracy ↔ interpretability trade-off plot | `src/explainability/trade_off_plot.py` | **PENDING (v2 auditor pass)** | `results/trade_off_data.csv`; `results/trade_off_plot.png` |
-| Per-horizon disaggregated metrics | `src/evaluation/per_horizon_metrics.py` | **PENDING (v2 auditor pass)** | `results/per_horizon_metrics.csv` |
+| Explainability — VSN | `src/training/tft_fair_5seed.py` (TFT VSN extraction) | **VALIDATED** | `results/tft_importance.csv` |
+| Faithfulness layer | `src/explainability/faithfulness_test.py` | **VALIDATED** | `results/faithfulness.csv` |
+| Cross-model XAI agreement | `src/explainability/cross_model_xai_agreement.py` | **VALIDATED** | `results/xai_agreement.csv` |
+| Accuracy ↔ interpretability trade-off plot | `src/explainability/trade_off_plot.py` | **VALIDATED** | `results/trade_off_data.csv`; `results/trade_off_plot.png` |
+| Per-horizon disaggregated metrics | `src/evaluation/per_horizon_metrics.py` | **VALIDATED** | `results/per_horizon_metrics.csv` |
 <!-- @end-include -->
 
 ## D. Configuration Files
 
-The pipeline does not use external configuration files. All run-time constants are encoded as module-level constants inside the relevant `src/` files; the canonical reference for these constants is `CLAUDE.md` § 10 (locked implementation defaults). The Comparison Cards in `docs/EXPERIMENT_MANIFEST.md` reproduce the per-model field set in tabular form.
+The pipeline does not use external configuration files. All run-time constants are encoded as module-level constants inside the relevant `src/` files; the canonical reference for these constants is this appendix's hyperparameter tables (§ A above).
 
 ## E. Reproducibility Verification — Tier 1 vs Tier 2
 
-The checklist below describes the reproducibility evidence the thesis relies on. A dedicated automation script was prototyped (`src/utils/verify_reproducibility.py`) but was dropped on 2026-04-20 during the S-11 archive migration because it reconstructed TFT under the OT-only + future-covariates regime (inconsistent with § 10 fair-core) and re-trained the model inside the check rather than loading the authoritative `checkpoints/tft_seed*.ckpt`. A fair-core replacement (checkpoint-load witness only; no re-train) is future work. Until then, the individual checks listed below are verified *ad hoc* from the current artefacts in `results/` + `checkpoints/`.
+The checklist below describes the reproducibility evidence the thesis relies on. A dedicated automation script was prototyped (`src/utils/verify_reproducibility.py`) but was dropped on 2026-04-20 during the S-11 archive migration because it reconstructed TFT under the OT-only + future-covariates regime (inconsistent with the fair-core configuration) and re-trained the model inside the check rather than loading the authoritative `checkpoints/tft_seed*.ckpt`. A fair-core replacement (checkpoint-load witness only; no re-train) is future work. Until then, the individual checks listed below are verified *ad hoc* from the current artefacts in `results/` + `checkpoints/`.
 
 | ID | Check | Tier |
 |----|-------|------|
@@ -170,7 +169,7 @@ The headline § 3.8.1 table reports mean ± std across seeds. The per-seed value
 | Model | Seed | MSE       | MAE       | RMSE      | Best epoch |
 |-------|------|-----------|-----------|-----------|------------|
 | LR    | —    |  7.660473 |  1.465105 |  2.767756 | — (closed-form) |
-| MLP   | 42   |  9.607342 |  1.810953 |  3.099571 | 13 |
+| MLP   | 42   |  9.704269 |  1.824736 |  3.115168 | 12 |
 | MLP   | 123  |  9.378154 |  1.820981 |  3.062377 | 24 |
 | MLP   | 456  |  9.570781 |  1.807955 |  3.093668 | 11 |
 | MLP   | 789  |  9.444790 |  1.807262 |  3.073238 | 23 |
@@ -194,27 +193,27 @@ The headline § 3.8.2 table reports the six MSE intervals. The full 18-row table
 <!-- @begin-include _generated/bootstrap_full.md -->
 | Pair (A vs B) | Metric | Mean diff (A − B) | 95 % CI low | 95 % CI high | Bootstrap N | Bootstrap seed | Block length | n_test_windows |
 |---------------|--------|--------------------|--------------|---------------|--------------|------------------|---------------|-------------------|
-| LR vs MLP | MSE | -1.270611 | -1.583030 | -0.880680 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs MLP | MAE | -0.260448 | -0.301583 | -0.206169 | 10 000 | 2026 | 96 | 3 365 |
-| LR vs MLP | RMSE | -0.248450 | -0.298103 | -0.177971 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs MLP | MSE | -1.303264 | -1.632323 | -0.892369 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs MLP | MAE | -0.266486 | -0.310032 | -0.208887 | 10 000 | 2026 | 96 | 3 365 |
+| LR vs MLP | RMSE | -0.252443 | -0.305068 | -0.178764 | 10 000 | 2026 | 96 | 3 365 |
 | LR vs LSTM | MSE | -4.413084 | -5.318296 | -3.410152 | 10 000 | 2026 | 96 | 3 365 |
 | LR vs LSTM | MAE | -0.586847 | -0.658561 | -0.497758 | 10 000 | 2026 | 96 | 3 365 |
 | LR vs LSTM | RMSE | -0.739074 | -0.871760 | -0.575593 | 10 000 | 2026 | 96 | 3 365 |
 | LR vs TFT | MSE | -5.791200 | -6.741966 | -4.612476 | 10 000 | 2026 | 96 | 3 365 |
 | LR vs TFT | MAE | -0.799158 | -0.873996 | -0.687095 | 10 000 | 2026 | 96 | 3 365 |
 | LR vs TFT | RMSE | -0.944549 | -1.071772 | -0.767360 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs LSTM | MSE | -3.142473 | -4.199145 | -2.094700 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs LSTM | MAE | -0.326398 | -0.413099 | -0.238654 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs LSTM | RMSE | -0.490624 | -0.649368 | -0.324561 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs TFT | MSE | -4.520589 | -5.594069 | -3.324719 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs TFT | MAE | -0.538710 | -0.617334 | -0.442398 | 10 000 | 2026 | 96 | 3 365 |
-| MLP vs TFT | RMSE | -0.696099 | -0.841591 | -0.525371 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs LSTM | MSE | -3.109820 | -4.178061 | -2.053014 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs LSTM | MAE | -0.320361 | -0.409885 | -0.230770 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs LSTM | RMSE | -0.486631 | -0.649627 | -0.317876 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs TFT | MSE | -4.487936 | -5.571081 | -3.289024 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs TFT | MAE | -0.532672 | -0.613125 | -0.435136 | 10 000 | 2026 | 96 | 3 365 |
+| MLP vs TFT | RMSE | -0.692106 | -0.841328 | -0.518736 | 10 000 | 2026 | 96 | 3 365 |
 | LSTM vs TFT | MSE | -1.378116 | -1.730803 | -0.885637 | 10 000 | 2026 | 96 | 3 365 |
 | LSTM vs TFT | MAE | -0.212311 | -0.256155 | -0.153113 | 10 000 | 2026 | 96 | 3 365 |
 | LSTM vs TFT | RMSE | -0.205475 | -0.264532 | -0.131254 | 10 000 | 2026 | 96 | 3 365 |
 <!-- @end-include -->
 
-All 18 intervals exclude zero, so the corresponding mean per-window error differences remain distinguishable at the moving-block bootstrap-CI level with block length L = 96 under the present configuration. The § 16 safety sentence continues to apply; the overlapping-sliding-window dependence is method-matched by the block variant rather than silently assumed away.
+All 18 intervals exclude zero, so the corresponding mean per-window error differences remain distinguishable at the moving-block bootstrap-CI level with block length L = 96 under the present configuration. The safety sentence continues to apply; the overlapping-sliding-window dependence is method-matched by the block variant rather than silently assumed away.
 
 **Block length sensitivity.** Table `results/bachelor_safe_v2/bootstrap_block_sensitivity.csv` reports the 95 % CI widths at L ∈ {24, 48, 96, 192} for each (pair × metric) combination. Widths remain stable across block lengths (variation well within 10 % of the headline widths), confirming that L = 96 is not a knife-edge choice; the headline moving-block intervals are robust to reasonable L perturbations.
 
@@ -224,24 +223,24 @@ All 18 intervals exclude zero, so the corresponding mean per-window error differ
 | Model | n_params | Architectural category | Wall-clock seconds | Hardware note |
 |-------|----------|------------------------|---------------------|----------------|
 | LR    | 113 064 | linear                 | 0.7 s               | single local machine run; bachelor-safe local-only workflow |
-| MLP   | 124 328 | shallow-MLP            | 28.2 s              | single local machine run; bachelor-safe local-only workflow |
-| LSTM  |  29 608 | recurrent              | 44.9 s              | single local machine run; bachelor-safe local-only workflow |
-| TFT   |  18 261 | transformer-family     | 2373.4 s            | single local machine run; bachelor-safe local-only workflow |
+| MLP   | 124 328 | shallow-MLP            | 28.6 s              | single local machine run; bachelor-safe local-only workflow |
+| LSTM  |  29 608 | recurrent              | 51.7 s              | single local machine run; bachelor-safe local-only workflow |
+| TFT   |  18 261 | transformer-family     | 2122.8 s            | single local machine run; bachelor-safe local-only workflow |
 <!-- @end-include -->
 
 ## G. Extra SHAP / VSN Plots
 
-The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations per CLAUDE.md § 13. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the five-seed training pipeline's seed-variance signal (§ 2.9 methodology).
+The SHAP per-feature attribution profiles for LR, MLP, and LSTM and the VSN importance vector for TFT are written by the explainability scripts (§ 3.6 / appendix C). Under the v6.1 plan the primary cross-model explanation instrument is model-agnostic occlusion importance (see § 4.2); SHAP and VSN are reported as auxiliary architecture-native explanations under the interpretability contract of this thesis. The dedicated input-perturbation stability layer was dropped in the S-11 archive migration (2026-04-20); stability evidence in the thesis comes from the five-seed training pipeline's seed-variance signal (§ 2.9 methodology).
 
 <!-- @begin-include _generated/status_summary.md -->
-Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). Training + post-training layers status: see `docs/VALIDATION_LOG.md`. SHAP scripts are **VALIDATED**; `faithfulness_test.py` is currently **PENDING (v2 auditor pass)**.
+Tables and figures in this section are auto-generated from v2 fair-core rerun artefacts (`results/bachelor_safe_v2/`). The training and post-training analysis layers (`multi_seed.py`, `tft_fair_5seed.py`, `export_predictions.py`, `post_training_analysis.py`) are **VALIDATED**. The explainability layer (SHAP for LR/MLP/LSTM + VSN for TFT + faithfulness test) is **VALIDATED**.
 <!-- @end-include -->
 
 ## H. Implementation Notes
 
 A small number of implementation decisions are recorded here for reuse without being load-bearing on the main argument.
 
-*Identity normaliser inside `pytorch-forecasting`.* The TFT path uses an identity normaliser inside the framework's `TimeSeriesDataSet` to avoid a double-scaling pathology that would otherwise occur because the inputs are already standardised by the shared `StandardScaler` in the data-processing component. This is documented in the TFT Comparison Card of `docs/EXPERIMENT_MANIFEST.md` and is the mechanism by which TEXT-02 (TFT preprocessing admissibility under § 11A) clears.
+*Identity normaliser inside `pytorch-forecasting`.* The TFT path uses an identity normaliser inside the framework's `TimeSeriesDataSet` to avoid a double-scaling pathology that would otherwise occur because the inputs are already standardised by the shared `StandardScaler` in the data-processing component. This is the mechanism by which TFT preprocessing admissibility under the Comparability Gate clears.
 
 *Pickle-resolution fix in `export_predictions.py`.* The custom MSE class introduced in S-02b is defined at module level in `src/evaluation/export_predictions.py` so that the pickled TFT checkpoints can be unpickled successfully when loading via `load_from_checkpoint`. This is a `__main__`-vs-module namespace detail and is documented for future maintainers.
 

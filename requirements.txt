@@ -1,5 +1,5 @@
 # Thesis project dependencies — S-11.5 env lock (2026-04-20)
-# Anchor: docs/EXPERIMENT_MANIFEST.md:133 (Python 3.11 + torch 2.11.0.dev20260203+cu128 + NVIDIA RTX 5080)
+# Anchor: Python 3.11 + torch 2.11.0.dev20260203+cu128 + NVIDIA RTX 5080
 #
 # INSTALL STRATEGY A (two-stage, default):
 #   Stage 1 (separate command, nightly index):
