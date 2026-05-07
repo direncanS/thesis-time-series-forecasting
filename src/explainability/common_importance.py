@@ -1,7 +1,7 @@
 """Common, model-agnostic occlusion importance.
 
 Produces a uniform cross-model variable-importance instrument for all four
-core models (LR, MLP, LSTM, TFT). The interpretability contract of CLAUDE.md
+core models (LR, MLP, LSTM, TFT). The interpretability contract of the active configuration
 § 13 forbids treating SHAP (post-hoc, fitted to three of the four models)
 and VSN (architecture-native, TFT-only) as the same measurement object; this
 script introduces a common instrument that *is* the same measurement object
@@ -22,7 +22,7 @@ For each (model, seed, variable v):
        tensor with the baseline value 0.0. Because the StandardScaler is
        fit on the training partition only, the zero-vector in the scaled
        input space equals the training-distribution mean in the original
-       space by construction (CLAUDE.md § 10).
+       space by construction.
     3. Re-predict with the unchanged checkpoint and compute the occluded
        MSE.
     4. Importance(model, seed, v) = occluded_MSE − baseline_MSE. Higher
@@ -98,7 +98,7 @@ def occlude_variable(X_3d_scaled: np.ndarray, var_idx: int) -> np.ndarray:
     """Return a copy of ``X_3d_scaled`` with variable column ``var_idx`` set to 0.
 
     Zero in scaled space equals the training-distribution mean in the
-    original space (StandardScaler construction); see CLAUDE.md § 10.
+    original space (StandardScaler construction); the active configuration.
     """
     out = X_3d_scaled.copy()
     out[:, :, var_idx] = 0.0

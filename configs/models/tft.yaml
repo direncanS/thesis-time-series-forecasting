@@ -1,6 +1,6 @@
 # TFT baseline (reference / documentation config).
 #
-# pytorch_forecasting.TemporalFusionTransformer; defaults per CLAUDE.md § 10.
+# pytorch_forecasting.TemporalFusionTransformer; defaults per the active configuration § 10.
 # Multi-target: all 7 ETTh1 variables forecast simultaneously (fair-core
 # multivariate past-only configuration).
 #

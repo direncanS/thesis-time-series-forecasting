@@ -44,7 +44,7 @@ Baseline convention
 -------------------
 Variable occlusion sets the scaled-space column to 0.0, which equals the
 training-distribution mean in the original space by construction
-(``StandardScaler`` fit on the training partition only; CLAUDE.md § 10).
+(``StandardScaler`` fit on the training partition only).
 
 No model-specific branching
 ---------------------------

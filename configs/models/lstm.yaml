@@ -2,7 +2,7 @@
 #
 # Architecture (src/common.py::LSTMModel):
 #   LSTM(input_size, hidden_size, num_layers, batch_first=True) -> FC(hidden_size, output_size)
-# Defaults per CLAUDE.md § 10.
+# Defaults per the active configuration § 10.
 
 model: lstm
 architecture: recurrent

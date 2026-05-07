@@ -11,7 +11,7 @@ models.
 
 Auxiliary outputs retain the SHAP-family and VSN rank correlations so the
 thesis can discuss the method-family distinction (SHAP post-hoc for
-LR/MLP/LSTM vs VSN architecture-native for TFT; CLAUDE.md § 13) — but the
+LR/MLP/LSTM vs VSN architecture-native for TFT) — but the
 headline cross-model Spearman / Kendall results read off the occlusion
 primary.
 
@@ -190,7 +190,7 @@ def run_agreement(
     print("  Primary (occlusion) cross-model agreement is the RQ2 headline — same")
     print("  instrument for all 4 models. Auxiliary SHAP-family / SHAP↔VSN")
     print("  correlations remain available for the construct-validity discussion")
-    print("  (SHAP post-hoc vs VSN architecture-native; CLAUDE.md § 13).")
+    print("  (SHAP post-hoc vs VSN architecture-native).")
 
     return primary_df
 

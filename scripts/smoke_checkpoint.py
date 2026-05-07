@@ -126,7 +126,7 @@ tft.eval()
 tft_params = sum(p.numel() for p in tft.parameters())
 assert tft_params == 18261, (
     f"TFT param count beklenmedik: {tft_params} "
-    f"(beklenen 18261 per CLAUDE.md § 10)"
+    f"(beklenen 18261 per the active configuration § 10)"
 )
 print(f"[OK] TFT checkpoint load: params={tft_params}")
 

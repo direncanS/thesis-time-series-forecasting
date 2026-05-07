@@ -6,7 +6,7 @@
 # MultiLoss([MSE() for 7]) 7×-asymmetric TFT loss. C1 closure target.
 # - 5-flag FP32 regime (stochastic scope): TF32 explicitly disabled across
 # matmul + cudnn; cudnn.deterministic=True; cudnn.benchmark=False. LR
-# exempt per CLAUDE.md § 11A item 9. C2 closure target.
+# exempt per the active configuration § 11A item 9. C2 closure target.
 # - 5 seeds: [42, 123, 456, 789, 1024]. C4 partial closure (bachelor-safe
 # defensible).
 # - Output: results/bachelor_safe_v2/, checkpoints/bachelor_safe_v2/. C14

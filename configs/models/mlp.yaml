@@ -2,7 +2,7 @@
 #
 # Architecture (src/common.py::MLP):
 #   input_size -> hidden_size -> ReLU -> hidden_size -> ReLU -> output_size
-# Defaults per CLAUDE.md § 10.
+# Defaults per the active configuration § 10.
 #
 # This file is NOT used standalone by the training pipeline. See
 # configs/experiments/fair_core_v2.yaml for the experiment-level config.

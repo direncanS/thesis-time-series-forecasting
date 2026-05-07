@@ -4,7 +4,7 @@
 # fit_intercept=True). No gradient-based hyperparameters; no learning rate;
 # no epochs; no weight decay.
 #
-# LR exempts from the stochastic 5-flag FP32 block (CLAUDE.md § 11A item 9
+# LR exempts from the stochastic 5-flag FP32 block (the active configuration § 11A item 9
 # deterministic-baseline exception): no cudnn / matmul path.
 #
 # This file is NOT used by the training pipeline (which consumes

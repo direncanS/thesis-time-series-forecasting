@@ -9,7 +9,7 @@ Modes:
 
 Reads the active config (configs/experiments/fair_core_v2.yaml) via
 src.common.load_config, then verifies that every artifact listed in
-CLAUDE.md § 5 (the artifact = the reproducible pipeline) is present and
+the active configuration § 5 (the artifact = the reproducible pipeline) is present and
 schema-valid under the active output roots:
 
   results/bachelor_safe_v2/
@@ -51,7 +51,7 @@ if str(REPO_ROOT) not in sys.path:
 from src.common import load_config  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# Active expected values (CLAUDE.md § 4 + § 10 + configs/base.yaml).
+# Active expected values (the active configuration § 4 + § 10 + configs/base.yaml).
 # These are not configurable: they encode the locked v2 contract.
 # ---------------------------------------------------------------------------
 DEFAULT_CONFIG_PATH = REPO_ROOT / "configs" / "experiments" / "fair_core_v2.yaml"
@@ -644,7 +644,7 @@ def check_predictions(report: Report, results_dir: Path, seeds: list[int]) -> No
 # ---------------------------------------------------------------------------
 def check_checkpoints(report: Report, ckpt_dir: Path, seeds: list[int]) -> None:
     section = "F_checkpoints"
-    # LR has no checkpoint (closed-form OLS) — declared exempt per CLAUDE.md § 11A.
+    # LR has no checkpoint (closed-form OLS) — declared exempt per the active configuration § 11A.
     report.pass_(section, "lr_checkpoint_status_NA")
 
     for seed in seeds:

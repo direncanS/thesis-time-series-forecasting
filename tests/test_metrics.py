@@ -38,7 +38,7 @@ def test_compute_original_metrics_zero_residual():
 
 
 def test_summarize_results_ddof1_std():
-    """Per CLAUDE.md § 15: across-seed aggregation uses mean ± std with ddof=1."""
+    """Per the active configuration.: across-seed aggregation uses mean ± std with ddof=1."""
     rows = [{"mse": 1.0}, {"mse": 2.0}, {"mse": 3.0}]
     mean, std = summarize_results(rows, "mse")
     assert mean == pytest.approx(2.0)

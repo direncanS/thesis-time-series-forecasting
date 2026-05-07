@@ -5,7 +5,7 @@
 
 data_path: data/ETTh1.csv
 
-# Sliding-window spec (CLAUDE.md § 4)
+# Sliding-window spec (the active configuration § 4)
 input_len: 96
 output_len: 24
 
@@ -22,7 +22,7 @@ results_dir: results/bachelor_safe_v2
 checkpoints_dir: checkpoints/bachelor_safe_v2
 
 # 5-flag FP32 regime for stochastic neural models (MLP/LSTM/TFT).
-# LR (closed-form OLS) is deterministic-baseline-exempt per CLAUDE.md § 11A item 9.
+# LR (closed-form OLS) is deterministic-baseline-exempt per the active configuration § 11A item 9.
 # Applied by src/common.py::configure_stochastic_runtime.
 precision:
  matmul: highest
@@ -31,7 +31,7 @@ precision:
  cudnn_deterministic: true
  cudnn_benchmark: false
 
-# Per-model hyperparameters (CLAUDE.md § 10 locked defaults).
+# Per-model hyperparameters (the active configuration § 10 locked defaults).
 models:
  mlp:
  hidden_size: 128
