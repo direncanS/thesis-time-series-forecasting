@@ -123,10 +123,10 @@ def fig_01_dataset_overview() -> None:
         ax.grid(False)
         ax.tick_params(labelsize=7)
     axes[0].set_title(
-        "ETTh1 — hourly multivariate series; 60/20/20 chronological split markers overlaid",
+        "ETTh1 — stündliche multivariate Zeitreihe; 60/20/20 chronologischer Split überlagert",
         fontsize=10,
     )
-    axes[-1].set_xlabel("Date")
+    axes[-1].set_xlabel("Datum")
     fig.tight_layout()
     save(fig, "fig_01_dataset_overview")
 
@@ -154,13 +154,13 @@ def fig_02_train_test_split() -> None:
         (val_end, bar_y), n - val_end, bar_h,
         facecolor=SPLIT_COLOURS["test"], edgecolor="black", linewidth=0.6,
     ))
-    ax.text(train_end / 2, bar_y + bar_h / 2, f"train\n({train_end:,} h)",
+    ax.text(train_end / 2, bar_y + bar_h / 2, f"Training\n({train_end:,} h)",
             ha="center", va="center", color="black", fontsize=8)
     ax.text((train_end + val_end) / 2, bar_y + bar_h / 2,
-            f"validation\n({val_end - train_end:,} h)",
+            f"Validierung\n({val_end - train_end:,} h)",
             ha="center", va="center", color="white", fontsize=8)
     ax.text((val_end + n) / 2, bar_y + bar_h / 2,
-            f"test\n({n - val_end:,} h)",
+            f"Test\n({n - val_end:,} h)",
             ha="center", va="center", color="white", fontsize=8)
 
     # Sliding-window schematic above the bar
@@ -180,14 +180,14 @@ def fig_02_train_test_split() -> None:
     arrow_kwargs = dict(arrowstyle="-", color="black", linewidth=0.6,
                         shrinkA=0, shrinkB=2)
     ax.annotate(
-        f"input window ({INPUT_LEN} h)",
+        f"Eingabefenster ({INPUT_LEN} h)",
         xy=(win_start, label_y),
         xytext=(win_start - label_offset, label_y),
         ha="right", va="center", fontsize=8,
         arrowprops=arrow_kwargs,
     )
     ax.annotate(
-        f"forecast horizon ({OUTPUT_LEN} h)",
+        f"Prognosehorizont ({OUTPUT_LEN} h)",
         xy=(win_start + INPUT_LEN + OUTPUT_LEN, label_y),
         xytext=(win_start + INPUT_LEN + OUTPUT_LEN + label_offset, label_y),
         ha="left", va="center", fontsize=8,
@@ -195,7 +195,7 @@ def fig_02_train_test_split() -> None:
     )
 
     ax.annotate(
-        "StandardScaler fit on training segment only",
+        "StandardScaler ausschließlich auf Trainingssegment angepasst",
         xy=(train_end / 2, bar_y),
         xytext=(train_end / 2, bar_y - 0.14),
         ha="center", va="top", fontsize=8, style="italic",
@@ -203,11 +203,11 @@ def fig_02_train_test_split() -> None:
 
     ax.set_xlim(0, n)
     ax.set_ylim(0, 1.0)
-    ax.set_xlabel("Hour index")
+    ax.set_xlabel("Stundenindex")
     ax.set_yticks([])
     ax.grid(False)
     ax.spines["left"].set_visible(False)
-    ax.set_title("Chronological split and 96 h → 24 h sliding-window construction",
+    ax.set_title("Chronologischer Split und 96 h → 24 h Schiebefenster-Konstruktion",
                  fontsize=10)
     fig.tight_layout()
     save(fig, "fig_02_train_test_split")
@@ -226,7 +226,7 @@ def fig_03_pipeline_architecture() -> None:
             boxstyle="round,pad=0.02,rounding_size=0.08",
             facecolor=colour, edgecolor="black", linewidth=0.8,
         ))
-        ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=8)
+        ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=7.5)
 
     def arrow(x1, y1, x2, y2, style="-"):
         ax.annotate(
@@ -236,13 +236,13 @@ def fig_03_pipeline_architecture() -> None:
 
     main_row_y = 4.2
     main_h = 0.7
-    widths = [1.4, 1.1, 1.3, 1.4, 1.3]
+    widths = [1.55, 1.7, 1.35, 1.55, 1.85]
     labels = [
-        "ETTh1 ingest &\npre-processing",
-        "60/20/20\nchronological split",
+        "ETTh1 laden und\nvorbereiten",
+        "60/20/20\nchronologischer Split",
         "Train-only\nStandardScaler",
-        "Sliding-window\n(96 h → 24 h)",
-        "Model trainers\nLR, MLP, LSTM, TFT",
+        "Sliding-Windows\n(96 h → 24 h)",
+        "Modelltraining\nLR, MLP, LSTM, TFT",
     ]
     x = 0.2
     xs = []
@@ -260,26 +260,26 @@ def fig_03_pipeline_architecture() -> None:
 
     eval_x = xs[-1][0] - 2.0
     box(eval_x, row2_y, 1.8, main_h,
-        "Evaluation\nper-seed / per-horizon /\nmoving-block bootstrap",
+        "Evaluierung\npro Seed und Horizont\nMoving-Block-Bootstrap",
         colour="#fdf2d9")
     arrow(xs[-1][0], row2_y + main_h / 2, eval_x + 1.8, row2_y + main_h / 2)
 
     xai_x = eval_x - 2.3
     box(xai_x, row2_y, 2.0, main_h,
-        "Interpretability\ncommon occlusion · AOPC\nSHAP · TFT VSN",
+        "Erklärbarkeit\nprimär: Okklusion + AOPC\nergänzend: SHAP / TFT-VSN",
         colour="#fdf2d9")
     arrow(eval_x, row2_y + main_h / 2, xai_x + 2.0, row2_y + main_h / 2)
 
     # Reports row
     row3_y = 1.1
     box(3.2, row3_y, 3.6, main_h,
-        "Report artifacts\nCSV · bootstrap tables · figures\ntraining/runtime traces",
+        "Ergebnisartefakte\nCSV-Dateien - Bootstrap-Tabellen - Abbildungen\nTrainings-/Laufzeit-Traces",
         colour="#eef7e8")
     arrow(eval_x + 0.9, row2_y, 5.0, row3_y + main_h)
     arrow(xai_x + 1.0, row2_y, 4.0, row3_y + main_h, style="--")
 
     ax.text(5.0, 5.6,
-            "Fair-core evaluation pipeline (§ 5 Solution chapter)",
+            "Fair-Core-Evaluierungspipeline",
             ha="center", va="center", fontsize=10)
 
     save(fig, "fig_03_pipeline_architecture")
@@ -301,8 +301,8 @@ def fig_04_model_performance_comparison() -> None:
             color=colours, capsize=3, edgecolor="black", linewidth=0.5)
     ax1.set_xticks(x)
     ax1.set_xticklabels(MODEL_ORDER)
-    ax1.set_ylabel("RMSE (original scale)")
-    ax1.set_title("Test-set RMSE — primary metric")
+    ax1.set_ylabel("RMSE (Originalskala)")
+    ax1.set_title("Test-RMSE — primäre Metrik")
     for xi, (m, s) in enumerate(zip(rmse["mean"].values, rmse["std"].values)):
         ax1.text(xi, m + s + 0.05, f"{m:.2f}", ha="center", va="bottom", fontsize=8)
 
@@ -310,13 +310,13 @@ def fig_04_model_performance_comparison() -> None:
             color=colours, capsize=3, edgecolor="black", linewidth=0.5)
     ax2.set_xticks(x)
     ax2.set_xticklabels(MODEL_ORDER)
-    ax2.set_ylabel("MAE (original scale)")
-    ax2.set_title("Test-set MAE — secondary metric")
+    ax2.set_ylabel("MAE (Originalskala)")
+    ax2.set_title("Test-MAE — sekundäre Metrik")
     for xi, (m, s) in enumerate(zip(mae["mean"].values, mae["std"].values)):
         ax2.text(xi, m + s + 0.02, f"{m:.2f}", ha="center", va="bottom", fontsize=8)
 
     fig.suptitle(
-        "Cross-model predictive performance on ETTh1 test set — mean ±1 seed std",
+        "Modellübergreifende Vorhersagegüte auf ETTh1-Testset — Mittelwert ±1 Seed-Standardabweichung",
         fontsize=10,
     )
     fig.tight_layout(rect=[0, 0, 1, 0.94])
@@ -339,10 +339,10 @@ def fig_05_per_horizon_error() -> None:
             ax.fill_between(sub["horizon"], lo, hi,
                             color=MODEL_COLOURS[model], alpha=0.15, linewidth=0)
 
-    ax.set_xlabel(f"Forecast horizon step h (configured output length = {OUTPUT_LEN})")
-    ax.set_ylabel("MSE (original scale)")
+    ax.set_xlabel(f"Prognosehorizontschritt h (konfigurierte Ausgabelänge = {OUTPUT_LEN})")
+    ax.set_ylabel("MSE (Originalskala)")
     ax.set_title(
-        "Per-horizon test MSE under the configured 96 h → 24 h task",
+        "Test-MSE pro Horizontschritt für die konfigurierte 96 h → 24 h Aufgabe",
         fontsize=10,
     )
     ax.legend(loc="best", frameon=False)
@@ -369,10 +369,10 @@ def fig_06_faithfulness_aopc_by_k() -> None:
         ax.fill_between(sub["k"], sub["mean"] - sub["std"], sub["mean"] + sub["std"],
                         color=MODEL_COLOURS[model], alpha=0.15, linewidth=0)
 
-    ax.set_xlabel("Number of masked variables k")
-    ax.set_ylabel("AOPC gap (top-masked MSE − bottom-masked MSE)")
+    ax.set_xlabel("Anzahl maskierter Variablen k")
+    ax.set_ylabel("AOPC-Differenz (Top-maskierter MSE − Bottom-maskierter MSE)")
     ax.set_title(
-        "Faithfulness decomposition by k — project-specific AOPC definition",
+        "Faithfulness-Zerlegung nach k — projektspezifische AOPC-Definition",
         fontsize=10,
     )
     ax.legend(loc="best", frameon=False)
@@ -413,7 +413,7 @@ def fig_07_xai_agreement_heatmap() -> None:
                         color="black" if abs(matrix[i, j]) < 0.6 else "white",
                         fontsize=9)
     ax.set_title(
-        "Cross-model rank agreement (Spearman ρ) on occlusion importances",
+        "Modellübergreifende Rang-Übereinstimmung (Spearman ρ) für Occlusion-Wichtigkeiten",
         fontsize=10,
     )
     cbar = fig.colorbar(im, ax=ax, shrink=0.8)
@@ -456,10 +456,10 @@ def fig_08_performance_interpretability_tradeoff() -> None:
         ax.annotate(model, xy=(x, y), xytext=(8, 4),
                     textcoords="offset points", fontsize=9)
 
-    ax.set_xlabel("Mean test MSE (lower → better accuracy)")
-    ax.set_ylabel("Mean AOPC (higher → more faithful, per project definition)")
+    ax.set_xlabel("Mittlerer Test-MSE (niedriger → bessere Genauigkeit)")
+    ax.set_ylabel("Mittlerer AOPC (höher → höhere Faithfulness, gemäß Projektdefinition)")
     ax.set_title(
-        "Accuracy vs. occlusion-based faithfulness — present configuration",
+        "Genauigkeit vs. Occlusion-basierte Faithfulness — aktuelle Konfiguration",
         fontsize=10,
     )
     ax.legend(loc="best", frameon=False)
@@ -483,8 +483,8 @@ def fig_09_model_complexity() -> None:
         f"{m}\n({df.loc[m, 'architectural_category']})" for m in MODEL_ORDER
     ])
     ax1.invert_yaxis()
-    ax1.set_xlabel("Parameter count (log scale)")
-    ax1.set_title("Model size")
+    ax1.set_xlabel("Parameteranzahl (log-Skala)")
+    ax1.set_title("Modellgröße")
     for yi, m in enumerate(MODEL_ORDER):
         ax1.text(df.loc[m, "n_params"], yi, f"  {int(df.loc[m, 'n_params']):,}",
                  va="center", fontsize=8)
@@ -493,15 +493,15 @@ def fig_09_model_complexity() -> None:
     ax2.set_yticks(y)
     ax2.set_yticklabels(MODEL_ORDER)
     ax2.invert_yaxis()
-    ax2.set_xlabel("Training wall-clock (s, single-machine run)")
-    ax2.set_title("Observed training time")
+    ax2.set_xlabel("Trainingslaufzeit (s, Single-Machine-Lauf)")
+    ax2.set_title("Gemessene Trainingszeit")
     for yi, m in enumerate(MODEL_ORDER):
         ax2.text(df.loc[m, "wall_clock_seconds"], yi,
                  f"  {df.loc[m, 'wall_clock_seconds']:.1f}s",
                  va="center", fontsize=8)
 
     fig.suptitle(
-        "Model complexity overview (hardware-dependent wall-clock; see README)",
+        "Übersicht der Modellkomplexität (hardware-abhängige Laufzeit)",
         fontsize=10,
     )
     fig.tight_layout(rect=[0, 0, 1, 0.94])

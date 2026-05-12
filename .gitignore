@@ -24,3 +24,13 @@ Thumbs.db
 
 # Academic PDFs (copyright — cited via Harvard entries; not redistributed via git)
 References/*.pdf
+
+# Thesis prose kept locally only; not redistributed via git
+docs/*
+!docs/.gitkeep
+
+# Local PDF audit / review tooling output (page screenshots, not redistributed)
+tmp_pdf_audit/
+tmp_pdf_audit_current/
+tmp_pdf_review_*/
+Bachelor_SAHIN.pdf
